@@ -216,8 +216,7 @@ void UTIL_HostSay(edict_t* pEntity, int teamonly, char* message) {
 	else
 		std::sprintf(text, "%c%s: ", 2, STRING(pEntity->v.netname));
 
-	const int j = sizeof(text) - 2 - std::strlen(text); // -2 for /n and null terminator
-	if (static_cast<int>(std::strlen(message)) > j)
+	if (const unsigned j = sizeof(text) - 2 - std::strlen(text); std::strlen(message) > j)
 		message[j] = 0;
 
 	std::strcat(text, message);
