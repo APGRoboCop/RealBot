@@ -4454,8 +4454,8 @@ void cNodeMachine::FindMinMax() const
     miny -= NODE_ZONE;
 
     // first compute the X and Y divider scale, and take the greatest of both
-	const float scalex = (1 + maxx - minx) / DEBUG_BMP_WIDTH;
-	const float scaley = (1 + maxy - miny) / DEBUG_BMP_WIDTH;
+	const float scalex = (1 + maxx - minx) / static_cast<int>(DEBUG_BMP_WIDTH);
+	const float scaley = (1 + maxy - miny) / static_cast<int>(DEBUG_BMP_WIDTH);
     if (scalex > scaley)
         scale = scalex + scalex / 100;    // add a little offset (margin) for safety
     else

@@ -110,7 +110,7 @@ extern weapon_price_table weapons_table[32];
 #define DMG_SLOWFREEZE        (1 << 22)       // in a subzero freezer
 
 // define some function prototypes...
-void FakeClientCommand(edict_t *pBot, char *arg1, char *arg2, char *arg3);
+void FakeClientCommand(edict_t *pBot, const char *arg1, const char *arg2, const char *arg3);
 
 #define LADDER_UNKNOWN  0
 #define LADDER_UP       1
@@ -623,7 +623,7 @@ Vector VecBModelOrigin(edict_t *pEdict);
 
 void UTIL_ShowMenu(edict_t *pEdict, int slots, int displaytime, bool needmore, char *pText);
 
-void UTIL_SelectItem(edict_t *pEdict, char *item_name);
+void UTIL_SelectItem(edict_t *pEdict, const char *item_name);
 
 void UTIL_BuildFileName(char *filename, char *arg1, char *arg2);
 
@@ -633,7 +633,7 @@ unsigned short fixed_unsigned16(float value, float scale); //redundant declarati
 
 short fixed_signed16(float value, float scale); //redundant declaration? [APG]RoboCop[CL]
 
-void HUD_DrawString(int r, int g, int b, char *msg, edict_t *edict);
+void HUD_DrawString(int r, int g, int b, const char *msg, edict_t *edict);
 
 void UTIL_FixAngles(Vector *Angles);
 

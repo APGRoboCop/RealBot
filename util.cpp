@@ -417,7 +417,7 @@ Vector GetGunPosition(edict_t* pEdict) {
 	return pEdict->v.origin + pEdict->v.view_ofs;
 }
 
-void UTIL_SelectItem(edict_t* pEdict, char* item_name) {
+void UTIL_SelectItem(edict_t* pEdict, const char* item_name) {
 	/*BotDebug( item_name); */
 	FakeClientCommand(pEdict, item_name, nullptr, nullptr);
 }
@@ -692,7 +692,7 @@ int UTIL_GiveWeaponId(const char* name) {
 }
 
 // Return weapon ID (depended on mod)
-char* UTIL_GiveWeaponName(int id) {
+char* UTIL_GiveWeaponName(const int id) {
 	if (mod_id == CSTRIKE_DLL) {
 		switch (id) {
 		case CS_WEAPON_C4:
@@ -758,7 +758,7 @@ char* UTIL_GiveWeaponName(int id) {
 }
 
 // Thanks Botman for this code (from forum).
-void UTIL_BotSprayLogo(edict_t* pEntity, char* logo_name) {
+void UTIL_BotSprayLogo(edict_t* pEntity, const char* logo_name) {
 	TraceResult pTrace;
 	UTIL_MakeVectors(pEntity->v.v_angle);
 	const Vector v_src = pEntity->v.origin + pEntity->v.view_ofs;
@@ -871,7 +871,7 @@ short fixed_signed16(float value, float scale) {
 }
 
 // Using POD/SDK source to print nice messages on the client machine
-void HUD_DrawString(int r, int g, int b, char* msg, edict_t* edict) {
+void HUD_DrawString(int r, int g, int b, const char* msg, edict_t* edict) {
 	// FROM PODBOT SOURCE
 	// Hacked together Version of HUD_DrawString
 	MESSAGE_BEGIN(MSG_ONE, SVC_TEMPENTITY, nullptr, edict);
@@ -892,7 +892,7 @@ void HUD_DrawString(int r, int g, int b, char* msg, edict_t* edict) {
 	WRITE_SHORT(fixed_unsigned16(2, 1 << 8));
 	WRITE_SHORT(fixed_unsigned16(6, 1 << 8));
 	WRITE_SHORT(fixed_unsigned16(0.1f, 1 << 8));
-	WRITE_STRING(static_cast<const char*>(&msg[0]));
+	WRITE_STRING(&msg[0]);
 	MESSAGE_END();
 }
 

@@ -22,8 +22,8 @@ builder.cxx.defines += [
 
 if builder.cxx.like('gcc'):
   builder.cxx.defines += [
-	'stricmp=strcasecmp',
-	'strcmpi=strcasecmp'
+    'stricmp=strcasecmp',
+    'strcmpi=strcasecmp'
   ]
   
   builder.cxx.c_only_flags += ['-std=gnu99']
@@ -72,11 +72,11 @@ elif builder.cxx.target.platform == 'windows':
   builder.cxx.cflags += []
   # Windows compiler C++ flags
   builder.cxx.cxxflags += [
-	'/std:c++17',
-	'/arch:SSE2',
+    '/std:c++17',
+    '/arch:SSE2',
     '/fp:precise',
-	'/Qspectre',
-	'/EHsc'
+    '/Qspectre',
+    '/EHsc'
   ]
   # Windows linker flags
   builder.cxx.linkflags += [
@@ -97,7 +97,7 @@ if builder.options.optimize == '1':
     builder.cxx.cflags += ['/Ox', '/Zo', '/Ob3', '/GF']
     # Windows optimization link flags
     builder.cxx.linkflags += ['/OPT:ICF', '/OPT:REF']
-	# This needs to be after our optimization flags which could otherwise disable it.
+    # This needs to be after our optimization flags which could otherwise disable it.
     builder.cxx.cflags += ['/Oy-']
 
 # Compiler options for debugging ( --enable-debug )
