@@ -100,10 +100,6 @@ int internet_min_interval = 10;
 // Counter-Strike 1.6 or 1.5
 int counterstrike = 0;          // Default 1.5
 
-void UpdateClientData(const edict_s *ent, int sendweapons, clientdata_s *cd); //Not used? [APG]RoboCop[CL]
-
-void ProcessBotCfgFile();
-
 // External added variables
 bool end_round = false;
 
@@ -118,8 +114,6 @@ int kick_bots_team = 0;
 bool internet_addbot = false;   // Add a bot?
 float add_timer = -1;           // Timer for adding bots
 bool internet_play = false;
-
-void RealBot_ServerCommand();
 
 // START of Metamod stuff
 enginefuncs_t meta_engfuncs;
@@ -412,8 +406,7 @@ int Spawn(edict_t *pent) {
     RETURN_META_VALUE(MRES_IGNORED, 0);
 }
 
-BOOL
-ClientConnect(edict_t *pEntity, const char *pszName,
+int ClientConnect(edict_t *pEntity, const char *pszName,
               const char *pszAddress, char szRejectReason[128]) {
     if (gpGlobals->deathmatch) {
 	    // check if this client is the listen server client
@@ -523,7 +516,6 @@ void ClientCommand(edict_t *pEntity) {
     RETURN_META(MRES_IGNORED);
 }
 
-// TODO: Revise this method
 void StartFrame() {
     if (!gpGlobals->deathmatch) return; // bots only work in 'deathmatch mode'
 	//REALBOT_PRINT("StartFrame", "BEGIN");

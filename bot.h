@@ -646,8 +646,43 @@ int UTIL_GetBotIndex(edict_t *pEdict);
 
 cBot *UTIL_GetBotPointer(edict_t *pEdict);
 
+// IniParser.ini
+void INI_Section(char input[80], char section[30]);
+void INI_Word(char input[80], char word[25]);
+int INI_WordType(char word[25], int section);
+void INI_Sentence(FILE* f, char result[80]);
+
+int INI_SectionType(char section[30], int last);
+int INI_SectionType_BUYTABLE(char section[30], int last);
+
+int INI_WordValueINT(char result[80]);
+
+float INI_WordValueFLOAT(char result[80]);
+
+void INI_WordValueCHAR(char result[80], char value[80]);
 
 // dll.cpp
+void UpdateClientData(const edict_s* ent, int sendweapons, clientdata_s* cd);
+void ProcessBotCfgFile();
 bool BotRadioAction();
+void GameDLLInit();
+
+#ifdef _WIN32
+int WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved);
+#endif
+
+int ClientConnect(edict_t* pEntity, const char* pszName, const char* pszAddress, char szRejectReason[128]);
+
+void ClientDisconnect(edict_t* pEntity);
+void ConsoleThink(cBot* pBot);
+void ClientPutInServer(edict_t* pEntity);
+void StartFrame();
+void RealBot_ServerCommand();
+
+int Spawn(edict_t* pent);
+int Spawn_Post(edict_t* pent);
+
+// util.cpp
+void UTIL_BotSprayLogo(edict_t* pEntity, const char* logo_name);
 
 #endif                          // BOT_H

@@ -114,8 +114,15 @@ bool VectorIsVisibleWithEdict(edict_t * pEdict, const Vector& dest,
 bool BOT_DecideTakeCover(cBot * pBot);
 
 // bot_buycode.cpp
-void BotConsole(cBot * pBot);
+int PriceWeapon(int weapon_id);
+int ListIdWeapon(int weapon_id);
 
+void BotPrepareConsoleCommandsToBuyWeapon(cBot* pBot, const char* arg1, const char* arg2);
+
+bool GoodWeaponForTeam(int weapon, int team);
+
+void BotConsole(cBot * pBot);
+void BotDecideWhatToBuy(cBot* pBot);
 void rblog(const char* txt);
 
 // bot.cpp

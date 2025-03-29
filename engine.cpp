@@ -37,7 +37,7 @@
 #include "bot_func.h"
 #include "ChatEngine.h"
 
-//#include "engine.h"
+#include "engine.h"
 #include "game.h"
 
 extern enginefuncs_t g_engfuncs; //Redundant? [APG]RoboCop[CL]
