@@ -46,99 +46,99 @@ typedef struct {
 extern weapon_price_table weapons_table[32];
 
 // BOT SPECIFIC / AUDIOABLE / VISUAL PROPERTIES
-#define BOT_HEARDISTANCE    1500
-#define BOT_HEARFIREDISTANCE 2500
+constexpr int BOT_HEARDISTANCE = 1500;
+constexpr int BOT_HEARFIREDISTANCE = 2500;
 
 // define constants used to identify the MOD we are playing...
-#define VALVE_DLL        1       // Added "Half-Life DeathMatch"
-#define CSTRIKE_DLL        3       // Added "Counter-Strike"
+constexpr int VALVE_DLL = 1;       // Added "Half-Life DeathMatch";
+constexpr int CSTRIKE_DLL = 3;       // Added "Counter-Strike";
 
 // max names in rb_names.txt
-#define MAX_BOT_NAMES 100
+constexpr int MAX_BOT_NAMES = 100;
 
 // Define Join states for other mods
-#define JOIN_TEAM        1
-#define JOIN_CLASS       2
-#define JOIN_NONE        9999
+constexpr int JOIN_TEAM = 1;
+constexpr int JOIN_CLASS = 2;
+constexpr int JOIN_NONE = 9999;
 
 // fix for steam (cs 1.6 bot will crash when FL_FAKECLIENT;
 // this is fixed later again in STEAM, but leave it in anway).
-#define FL_THIRDPARTYBOT (1 << 27)
+constexpr int FL_THIRDPARTYBOT = (1 << 27);
 
 // "Own predefined" item types (attached with buying code)
-#define CS_WEAPON_ARMOR_LIGHT        199
-#define CS_WEAPON_ARMOR_HEAVY        299
+constexpr int CS_WEAPON_ARMOR_LIGHT = 199;
+constexpr int CS_WEAPON_ARMOR_HEAVY = 299;
 
 // damage tolerance
-#define CSTRIKE_MIN_DAMAGE    7
-#define CSTRIKE_MAX_DAMAGE    14
+constexpr int CSTRIKE_MIN_DAMAGE = 7;
+constexpr int CSTRIKE_MAX_DAMAGE = 14;
 
 // The type of a weapon, not mod related. You can use these prefixed names
 // for your functions
-#define SNIPER        10      // Sniper gun
-#define RIFLE        20      // Rifle
-#define HANDGUN        30      // Handgun
-#define ARMOR        40      // Armor
-#define PRIMARY        50      // Its a primary weapon (for CS Mods)
-#define SECONDARY    60      // Its a secondary weapon (for CS Mods)
-#define GRENADE        70      // Grenade (aka, HE, Flashbang, C4, etc)
-#define KNIFE        80      // Knife / Crowbar etc
-#define SHIELD        90      // Shield (CS 1.6)
-#define NONE        99      // No type
+constexpr int SNIPER = 10;      // Sniper gun;
+constexpr int RIFLE = 20;      // Rifle;
+constexpr int HANDGUN = 30;      // Handgun;
+constexpr int ARMOR = 40;      // Armor;
+constexpr int PRIMARY = 50;      // Its a primary weapon (for CS Mods);
+constexpr int SECONDARY = 60;      // Its a secondary weapon (for CS Mods)
+constexpr int GRENADE = 70;      // Grenade (aka, HE, Flashbang, C4, etc);
+constexpr int KNIFE = 80;      // Knife / Crowbar etc
+constexpr int SHIELD = 90;      // Shield (CS 1.6)
+constexpr int NONE = 99;      // No type
 
 // Strafe
 //#define STRAFE_LEFT           0
 //#define STRAFE_RIGHT  1
 
 // zooming
-#define ZOOM_NONE          0
-#define ZOOM_ONCE          1
-#define ZOOM_TWICE          2
+constexpr int ZOOM_NONE = 0;
+constexpr int ZOOM_ONCE = 1;
+constexpr int ZOOM_TWICE = 2;
 
 // instant damage (from cbase.h)
-#define DMG_CRUSH            (1 << 0)        // crushed by falling or moving object
-#define DMG_BURN            (1 << 3)        // heat burned
-#define DMG_FREEZE            (1 << 4)        // frozen
-#define DMG_FALL            (1 << 5)        // fell too far
-#define DMG_SHOCK            (1 << 8)        // electric shock
-#define DMG_DROWN            (1 << 14)       // Drowning
-#define DMG_NERVEGAS        (1 << 16)       // nerve toxins, very bad
-#define DMG_RADIATION        (1 << 18)       // radiation exposure
-#define DMG_DROWNRECOVER    (1 << 19)       // drowning recovery
-#define DMG_ACID            (1 << 20)       // toxic chemicals or acid burns
-#define DMG_SLOWBURN        (1 << 21)       // in an oven
-#define DMG_SLOWFREEZE        (1 << 22)       // in a subzero freezer
+constexpr int DMG_CRUSH = (1 << 0);        // crushed by falling or moving object
+constexpr int DMG_BURN = (1 << 3);        // heat burned
+constexpr int DMG_FREEZE = (1 << 4);        // frozen
+constexpr int DMG_FALL = (1 << 5);        // fell too far
+constexpr int DMG_SHOCK = (1 << 8);        // electric shock
+constexpr int DMG_DROWN = (1 << 14);       // Drowning
+constexpr int DMG_NERVEGAS = (1 << 16);       // nerve toxins, very bad
+constexpr int DMG_RADIATION = (1 << 18);       // radiation exposure
+constexpr int DMG_DROWNRECOVER = (1 << 19);       // drowning recovery
+constexpr int DMG_ACID = (1 << 20);             // toxic chemicals or acid burns
+constexpr int DMG_SLOWBURN = (1 << 21);       // in an oven
+constexpr int DMG_SLOWFREEZE = (1 << 22);   // in a subzero freezer; 
 
 // define some function prototypes...
 void FakeClientCommand(edict_t *pBot, const char *arg1, const char *arg2, const char *arg3);
 
-#define LADDER_UNKNOWN  0
-#define LADDER_UP       1
-#define LADDER_DOWN     2
+constexpr int LADDER_UNKNOWN = 0;
+constexpr int LADDER_UP = 1;
+constexpr int LADDER_DOWN = 2;
 
-#define WANDER_LEFT  1
-#define WANDER_RIGHT 2
+constexpr int WANDER_LEFT = 1;
+constexpr int WANDER_RIGHT = 2;
 
-#define BOT_PITCH_SPEED 30
-#define BOT_YAW_SPEED 30
+constexpr int BOT_PITCH_SPEED = 30;
+constexpr int BOT_YAW_SPEED = 30;
 
-#define RESPAWN_NONE             0      // Added by Stefan
-#define RESPAWN_IDLE             1
-#define RESPAWN_NEED_TO_RESPAWN  2
-#define RESPAWN_IS_RESPAWNING    3
+constexpr int RESPAWN_NONE = 0;     // Added by Stefan;
+constexpr int RESPAWN_IDLE = 1;
+constexpr int RESPAWN_NEED_TO_RESPAWN = 2;
+constexpr int RESPAWN_IS_RESPAWNING = 3;
 
 // game start messages for CS...
-#define MSG_CS_IDLE         1
-#define MSG_CS_TEAM_SELECT  2
-#define MSG_CS_CT_SELECT    3
-#define MSG_CS_T_SELECT     4
+constexpr int MSG_CS_IDLE = 1;
+constexpr int MSG_CS_TEAM_SELECT = 2;
+constexpr int MSG_CS_CT_SELECT = 3;
+constexpr int MSG_CS_T_SELECT = 4;
 
-#define BOT_SKIN_LEN 32
-#define BOT_NAME_LEN 32
+constexpr int BOT_SKIN_LEN = 32;
+constexpr int BOT_NAME_LEN = 32;
 
-#define MAX_BOT_WHINE 100
+constexpr int MAX_BOT_WHINE = 100;
 
-#define REMEMBER_ENEMY_TIME   20        // remember for 20 seconds
+constexpr int REMEMBER_ENEMY_TIME = 20;        // remember for 20 seconds
 
 typedef struct {
     int iId;                     // weapon ID
@@ -621,11 +621,11 @@ Vector GetGunPosition(edict_t *pEdict);
 
 Vector VecBModelOrigin(edict_t *pEdict);
 
-void UTIL_ShowMenu(edict_t *pEdict, int slots, int displaytime, bool needmore, char *pText);
+void UTIL_ShowMenu(edict_t *pEdict, int slots, int displaytime, bool needmore, const char *pText);
 
 void UTIL_SelectItem(edict_t *pEdict, const char *item_name);
 
-void UTIL_BuildFileName(char *filename, char *arg1, char *arg2);
+void UTIL_BuildFileName(char *filename, const char *arg1, const char *arg2);
 
 void UTIL_BuildFileNameRB(const char *subdir, char *filename);
 

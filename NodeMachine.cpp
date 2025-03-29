@@ -52,8 +52,6 @@
 
 #include "NodeMachine.h"
 
-#include <string>
-
 tNodestar astar_list[MAX_NODES];
 
 const Vector &INVALID_VECTOR = Vector(9999, 9999, 9999);
@@ -2553,6 +2551,72 @@ void cNodeMachine::makeAllWaypointsAvailable()
     }
 //    rblog("All nodes set to AVAILABLE\n");
 }
+
+bool cNodeMachine::isValidNodeIndex(int index) const //TODO: Experimental [APG]RoboCop[CL]
+{
+	return index >= 0 && index < MAX_NODES;
+}
+
+bool cNodeMachine::isInvalidNode(int index) const //TODO: Experimental [APG]RoboCop[CL]
+{
+	return !isValidNodeIndex(index);
+}
+
+//TODO: Implement this function - Experimental [APG]RoboCop[CL]
+/*void cNodeMachine::buildPath(int nodeStartIndex, int nodeTargetIndex, int botIndex, cBot* pBot)
+{
+    if (!isValidNodeIndex(nodeStartIndex) || !isValidNodeIndex(nodeTargetIndex)) {
+        rblog("Invalid node index provided to buildPath");
+        return;
+    }
+
+    // Clear the current path for the bot
+    path_clear(botIndex);
+
+    // Initialize the A* algorithm
+    std::priority_queue<tNodestar> openList;
+    std::unordered_map<int, tNodestar> closedList;
+
+    constexpr tNodestar startNode = { OPEN, -1, 0.0f, 0.0 };
+    openList.push(startNode);
+
+    while (!openList.empty()) {
+        tNodestar currentNode = openList.top();
+        openList.pop();
+
+        if (currentNode.state == CLOSED) {
+            continue;
+        }
+
+        if (currentNode.parent == nodeTargetIndex) {
+            // Path found, reconstruct the path
+            int pathIndex = 0;
+            while (currentNode.parent != -1) {
+                iPath[botIndex][pathIndex++] = currentNode.parent;
+                currentNode = closedList[currentNode.parent];
+            }
+            std::reverse(iPath[botIndex], iPath[botIndex] + pathIndex);
+            return;
+        }
+
+        currentNode.state = CLOSED;
+        closedList[currentNode.parent] = currentNode;
+
+        // Open neighbor nodes
+        for (int neighborIndex : Nodes[currentNode.parent].iNeighbour)
+        {
+            if (neighborIndex == -1 || closedList.find(neighborIndex) != closedList.end()) {
+                continue;
+            }
+
+            const float cost = currentNode.cost + (node_vector(currentNode.parent) - node_vector(neighborIndex)).Length();
+            tNodestar neighborNode = { OPEN, currentNode.parent, cost, 0.0 };
+            openList.push(neighborNode);
+        }
+    }
+
+    rblog("Failed to build path");
+}*/
 
 // Find a node which has almost no danger!
 int cNodeMachine::node_camp(const Vector& vOrigin, int iTeam) const

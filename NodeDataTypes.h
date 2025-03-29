@@ -149,6 +149,11 @@ typedef struct {
 	int parent;                  // Who opened this node?
 	float cost;                 // Cost
 	double danger;
+
+	// Comparison operator for priority queue
+	/*bool operator<(const tNodestar& other) const {
+		return cost > other.cost; // Note: Use '>' for min-heap (lower cost has higher priority)
+	}*/
 }
 tNodestar;
 

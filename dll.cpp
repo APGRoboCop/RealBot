@@ -1012,7 +1012,7 @@ void StartFrame() {
     RETURN_META(MRES_IGNORED);
 }
 
-void FakeClientCommand(edict_t* pBot, char* arg1, char* arg2, char* arg3) {
+void FakeClientCommand(edict_t* pBot, const char* arg1, const char* arg2, const char* arg3) {
     int length;
 
     std::memset(g_argv, 0, sizeof(g_argv));
@@ -1119,7 +1119,7 @@ void UpdateClientData(const edict_s* ent, int sendweapons, clientdata_s* cd) //T
 void ProcessBotCfgFile() {
 	char cmd_line[256];
 	static char server_cmd[80];
-    char *arg2, *arg3, *arg4;
+    const char *arg2, *arg3, *arg4;
     char msg[80];
 
     if (bot_cfg_pause_time > gpGlobals->time)

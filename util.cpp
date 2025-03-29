@@ -422,12 +422,11 @@ void UTIL_SelectItem(edict_t* pEdict, const char* item_name) {
 }
 
 Vector VecBModelOrigin(edict_t* pEdict) {
-	return pEdict->v.absmin + (pEdict->v.size * 0.5);
+	return pEdict->v.absmin + (pEdict->v.size * 0.5f);
 }
 
-void
-UTIL_ShowMenu(edict_t* pEdict, int slots, int displaytime, bool needmore,
-	char* pText) {
+void UTIL_ShowMenu(edict_t* pEdict, int slots, int displaytime, bool needmore,
+	const char* pText) {
 	if (gmsgShowMenu == 0)
 		gmsgShowMenu = REG_USER_MSG("ShowMenu", -1);
 
@@ -441,7 +440,7 @@ UTIL_ShowMenu(edict_t* pEdict, int slots, int displaytime, bool needmore,
 	MESSAGE_END();
 }
 
-void UTIL_BuildFileName(char* filename, char* arg1, char* arg2) {
+void UTIL_BuildFileName(char* filename, const char* arg1, const char* arg2) {
 
 	if (mod_id == VALVE_DLL)
 		std::strcpy(filename, "valve/");
@@ -790,7 +789,7 @@ void UTIL_BotSprayLogo(edict_t* pEntity, const char* logo_name) {
 
 		MESSAGE_END();
 
-		EMIT_SOUND_DYN2(pEntity, CHAN_VOICE, "player/sprayer.wav", 1.0,
+		EMIT_SOUND_DYN2(pEntity, CHAN_VOICE, "player/sprayer.wav", 1.0f,
 			ATTN_NORM, 0, 100);
 	}
 }

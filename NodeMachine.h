@@ -35,7 +35,9 @@
 #ifndef NODEMACHINE_H
 #define NODEMACHINE_H
 
+#include <queue>
 #include <string>
+#include <unordered_map>
 
 #include "bot.h"
 
