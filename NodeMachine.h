@@ -40,6 +40,7 @@
 #include <unordered_map>
 
 #include "bot.h"
+#include "game.h"
 
 #include "NodeDataTypes.h"
 

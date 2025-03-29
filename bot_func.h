@@ -134,7 +134,7 @@ int UTIL_GetGrenadeType(edict_t * pEntity);
 
 bool UTIL_IsVip(edict_t * pEntity);
 
-char* UTIL_GiveWeaponName(int id);
+const char* UTIL_GiveWeaponName(int id);
 
 void UTIL_SpeechSynth(edict_t * pEdict, char *szMessage);
 void UTIL_BotRadioMessage(cBot * pBot, int radio, const char *arg1, const char *arg2);

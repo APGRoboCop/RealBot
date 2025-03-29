@@ -34,6 +34,8 @@
 #include <meta_api.h>
 #include <entity_state.h>
 
+#include "globals.h"
+
 #include "bot.h"
 #include "bot_func.h"
 #include "IniParser.h"

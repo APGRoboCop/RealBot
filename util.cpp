@@ -49,6 +49,8 @@
 #include <meta_api.h>
 #include <entity_state.h>
 
+#include "globals.h"
+
 #include "bot.h"
 #include "bot_weapons.h"
 #include "bot_func.h"
@@ -690,7 +692,7 @@ int UTIL_GiveWeaponId(const char* name) {
 }
 
 // Return weapon ID (depended on mod)
-char* UTIL_GiveWeaponName(const int id) {
+const char* UTIL_GiveWeaponName(const int id) {
 	if (mod_id == CSTRIKE_DLL) {
 		switch (id) {
 		case CS_WEAPON_C4:
