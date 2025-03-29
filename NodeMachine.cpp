@@ -2563,7 +2563,7 @@ bool cNodeMachine::isInvalidNode(int index) const //TODO: Experimental [APG]Robo
 }
 
 //TODO: Implement this function - Experimental [APG]RoboCop[CL]
-/*void cNodeMachine::buildPath(int nodeStartIndex, int nodeTargetIndex, int botIndex, cBot* pBot)
+void cNodeMachine::buildPath(int nodeStartIndex, int nodeTargetIndex, int botIndex, cBot* pBot)
 {
     if (!isValidNodeIndex(nodeStartIndex) || !isValidNodeIndex(nodeTargetIndex)) {
         rblog("Invalid node index provided to buildPath");
@@ -2616,7 +2616,7 @@ bool cNodeMachine::isInvalidNode(int index) const //TODO: Experimental [APG]Robo
     }
 
     rblog("Failed to build path");
-}*/
+}
 
 // Find a node which has almost no danger!
 int cNodeMachine::node_camp(const Vector& vOrigin, int iTeam) const
