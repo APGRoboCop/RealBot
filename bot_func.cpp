@@ -858,42 +858,35 @@ bool FUNC_IsOnLadder(const edict_t *pEntity) {
     return false;
 }
 
-void FUNC_FindBreakable(cBot* pBot)  //TODO: not functioning, bots won't shoot windows nor vent doors to proceed [APG]RoboCop[CL]
+void FUNC_FindBreakable(cBot* pBot)  // Updated function signature to accept cBot*
 {
-	// The "func_breakable" entity required for glass breaking and weak doors for bots to recognise,
+    // The "func_breakable" entity required for glass breaking and weak doors for bots to recognize,
     // in order to attack breakable objects that would block their way.
-
     if (pBot == nullptr) {
         return; // Ensure pBot is not null
     }
 
+    edict_t* pEntity = pBot->pEdict; // Get the edict from the bot
+
     for (int i = 0; i < gpGlobals->maxEntities; ++i) {
-        edict_t* pEdict = INDEXENT(i);
-        if (pEdict == nullptr || (pEdict->v.flags & FL_DORMANT)) {
+        edict_t* pent = INDEXENT(i);
+        if (pent == nullptr || (pent->v.flags & FL_DORMANT)) {
             continue; // Skip null or dormant entities
         }
 
-        const char* classname = STRING(pEdict->v.classname);
+        const char* classname = STRING(pent->v.classname);
 
         if (classname != nullptr && std::strcmp(classname, "func_breakable") == 0) {
-            if (pBot->canSeeEntity(pEdict)) {
-
-	            constexpr float SHOOT_WAIT_TIME = 1.0f;
-	            constexpr float SHOOT_DELAY = 0.1f;
-
-	            // Set the breakable entity as the bot's enemy
-                pBot->pEdict->v.enemy = pEdict;
-
-                // Set shooting times
-                pBot->f_shoot_time = gpGlobals->time + SHOOT_DELAY;
-                pBot->f_shoot_wait_time = gpGlobals->time + SHOOT_WAIT_TIME;
+            if (FVisible(pent->v.origin, pEntity)) {
+                // Set the breakable entity as the entity's enemy
+                pEntity->v.enemy = pent;
 
                 // Aim at the breakable entity
-                pBot->vBody = pEdict->v.origin;
-                pBot->vHead = pEdict->v.origin;
+                Vector vBody = pent->v.origin;
+                Vector vHead = pent->v.origin;
 
                 // Shoot at the breakable entity
-                UTIL_BotPressKey(pBot, IN_ATTACK);
+                UTIL_BotPressKey(pBot, IN_ATTACK); // Updated to use pBot instead of pEntity
                 return; // Exit after finding the first breakable entity
             }
         }

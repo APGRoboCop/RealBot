@@ -66,6 +66,7 @@ cBot *getCloseFellowBot(cBot * pBot);
 edict_t * getPlayerNearbyBotInFOV(cBot * pBot);
 edict_t * getEntityNearbyBotInFOV(cBot * pBot);
 
+bool isAnyPlayerNearbyBot(cBot* pBot);
 bool BotShouldJump(cBot * pBot);
 bool BotShouldJumpIfStuck(cBot * pBot);
 bool BotShouldDuck(cBot * pBot);
@@ -90,7 +91,7 @@ void FUNC_HearingTodo(cBot * pBot);
 void FUNC_ClearEnemyPointer(edict_t *pPtr); //pPtr muddled with c_pointer? [APG]RoboCop[CL]
 
 bool FUNC_IsOnLadder(const edict_t * pEntity);
-void FUNC_FindBreakable(edict_t* pEntity);
+void FUNC_FindBreakable(cBot* pBot);
 void FUNC_CheckForBombPlanted(edict_t* pEntity);
 
 int FUNC_GiveHostage(cBot * pBot);                      // gives any hostage we still have to go for
