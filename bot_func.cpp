@@ -792,7 +792,7 @@ void FUNC_HearingTodo(cBot *pBot) {
 
     if (health < 25)
         action = 2;
-    else if (health >= 25 && health < 75)
+    else if (/*health >= 25 &&*/ health < 75)
         action = 1;
     else
         action = -1;
@@ -1098,13 +1098,13 @@ int FUNC_GiveHostage(cBot* pBot) //Experimental [APG]RoboCop[CL]
     	// by default run
     	pBot->setMoveSpeed(pBot->f_max_speed);
 
-    	if (distanceToHostage <= 80)
+    	if (distanceToHostage <= 80.0f)
     	{
     		pBot->rprint_trace("GiveHostage", "I can see hostage AND really close!");
     		pBot->setMoveSpeed(0.0f); // too close, do not move
     	}
     }
-	return true; //gives any hostage we still have to go for
+	return 1; //gives any hostage we still have to go for
 }
 
 bool isHostageRescueable(cBot *pBot, edict_t *pHostage) {

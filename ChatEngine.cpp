@@ -158,23 +158,21 @@ void cChatEngine::think() {
         // End of protection matters
 
         // Step: Check character to identify the end of a word.
-        if (sentence[c] == ' ' || sentence[c] == '\n' ||
-            sentence[c] == '.' || sentence[c] == '?' ||
-            sentence[c] == '!' || c == sentenceLength) {
+        if (c >= sentenceLength || sentence[c] == ' ' || sentence[c] == '\n' ||
+            sentence[c] == '.' || sentence[c] == '?' || sentence[c] == '!') {
             // Now find the word and add up scores on the proper score blocks.
 
-            if (c == sentenceLength)
-                word[wc] = sentence[c];
+            if (c >= sentenceLength)
+                word[wc] = '\0'; // Null-terminate the word properly. [APG]RoboCop[CL]
 
-            // not a good word (too small)
+        	// not a good word (too small)
             if (std::strlen(word) <= 0) {
-                //SERVER_PRINT("This is not a good word!\n");
+                // SERVER_PRINT("This is not a good word!\n");
             }
             else {
                 for (int iB = 0; iB < MAX_BLOCKS; iB++) {
                     if (ReplyBlock[iB].bUsed) {
-                        for (const char(&iBw)[25] : ReplyBlock[iB].word)
-                        {
+                        for (const char(&iBw)[25] : ReplyBlock[iB].word) {
                             // skip any word in the reply block that is not valid
                             if (iBw[0] == '\0')
                                 continue; // not filled in
@@ -186,19 +184,18 @@ void cChatEngine::think() {
                             // add score to matching word (evy: ignoring case)
                             if (std::strcmp(iBw, word) == 0)
                                 WordBlockScore[iB]++;
-                        }       // all words in this block
-                    }          // any used block
-                }             // for all blocks
-            }                // good word
-
+                        } // all words in this block
+                    }     // any used block
+                }         // for all blocks
+            }             // good word
             // clear out entire word.
             //for (int cw=0; cw < 20; cw++)
             //      word[cw] = '\0';
             std::memset(word, 0, sizeof(word));
 
-            wc = 0;          // reset WC position (start writing 'word[WC]' at 0 again)
-            c++;             // next position in sentence
-            continue;        // go to top again.
+            wc = 0; // reset WC position (start writing 'word[WC]' at 0 again)
+            c++;    // next position in sentence
+            continue; // go to top again.
         }
         // when we end up here, we are still reading a 'non finishing word' character.
         // we will fill that in word[wc]. Then add up wc and c, until we find a character

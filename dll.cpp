@@ -179,7 +179,7 @@ C_DLLEXPORT int Meta_Query(const char *ifvers, plugin_info_t **pPlugInfo,
                         "metamod version is too old for this plugin; update metamod");
             LOG_ERROR(PLID,
                       "metamod version is too old for this plugin; update metamod");
-            return false;
+            return 0;
         }
             // if plugin has older major interface version, it's incompatible (update plugin)
         if (pmajor < mmajor) {
@@ -187,10 +187,10 @@ C_DLLEXPORT int Meta_Query(const char *ifvers, plugin_info_t **pPlugInfo,
 	                    "metamod version is incompatible with this plugin; please find a newer version of this plugin");
 	        LOG_ERROR(PLID,
 	                  "metamod version is incompatible with this plugin; please find a newer version of this plugin");
-	        return false;
+	        return 0;
         }
     }
-    return true;               // tell metamod this plugin looks safe
+    return 1;               // tell metamod this plugin looks safe
 }
 
 C_DLLEXPORT int
@@ -208,7 +208,7 @@ Meta_Attach(PLUG_LOADTIME now, META_FUNCTIONS *pFunctionTable,
         LOG_ERROR(PLID,
                   "%s: plugin NOT attaching (can't load plugin right now)",
                   Plugin_info.name);
-        return false;           // returning FALSE prevents metamod from attaching this plugin
+        return 0;           // returning FALSE prevents metamod from attaching this plugin
     }
     // keep track of the pointers to engine function tables metamod gives us
     gpMetaGlobals = pMGlobals;
@@ -225,7 +225,7 @@ Meta_Attach(PLUG_LOADTIME now, META_FUNCTIONS *pFunctionTable,
     // Notify user that 'realbot' command is regged
     LOG_CONSOLE(PLID, "realbot - command prefix is now reserved.");
     LOG_MESSAGE(PLID, "realbot - command prefix is now reserved.");
-    return true;               // returning TRUE enables metamod to attach this plugin
+    return 1;               // returning TRUE enables metamod to attach this plugin
 }
 
 C_DLLEXPORT int Meta_Detach(PLUG_LOADTIME now, PL_UNLOAD_REASON reason) {
@@ -240,12 +240,12 @@ C_DLLEXPORT int Meta_Detach(PLUG_LOADTIME now, PL_UNLOAD_REASON reason) {
         LOG_ERROR(PLID,
                   "%s: plugin NOT detaching (can't unload plugin right now)",
                   Plugin_info.name);
-        return false;           // returning FALSE prevents metamod from unloading this plugin
+        return 0;           // returning FALSE prevents metamod from unloading this plugin
     }
 
     NodeMachine.FreeVisibilityTable();
     free(message);
-    return true;               // returning TRUE enables metamod to unload this plugin
+    return 1;               // returning TRUE enables metamod to unload this plugin
 }
 
 // END of Metamod stuff
@@ -253,7 +253,7 @@ C_DLLEXPORT int Meta_Detach(PLUG_LOADTIME now, PL_UNLOAD_REASON reason) {
 #ifdef _WIN32
 // Required DLL entry point
 int WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-   return true;
+   return 1;
 }
 
 #endif                          /*  */
@@ -2095,7 +2095,7 @@ GetEntityAPI2(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) {
     gFunctionTable.pfnClientCommand = ClientCommand;
     gFunctionTable.pfnStartFrame = StartFrame;
     std::memcpy(pFunctionTable, &gFunctionTable, sizeof(DLL_FUNCTIONS));
-    return true;
+    return 1;
 }
 
 // Whistler:
@@ -2103,7 +2103,7 @@ C_DLLEXPORT int
 GetEntityAPI2_Post(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion) {
     gFunctionTable_post.pfnSpawn = Spawn_Post;   // need to declare another gFunctionTable_post in the top of the dll.cpp file
     std::memcpy(pFunctionTable, &gFunctionTable_post, sizeof(DLL_FUNCTIONS));
-    return true;
+    return 1;
 }
 
 // Stefan says: You where right, i did not understand it properly. But now i see the little

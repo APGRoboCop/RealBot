@@ -35,6 +35,7 @@
   **/
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstring>
 #include <extdll.h>
@@ -78,17 +79,16 @@ int cNodeMachine::GetVisibilityFromTo(int iFrom, int iTo) const {
 
     // was int
 	
-    // work out the position
+	// work out the position
     const long iPosition = iFrom * MAX_NODES + iTo;
     const long iByte = iPosition / 8;
     const unsigned int iBit = iPosition % 8;
 
-    if (iByte < g_iMaxVisibilityByte) {
-        const unsigned char* ToReturn = cVisTable + iByte;
-        return (*ToReturn & (1 << iBit)) ? VIS_VISIBLE : VIS_BLOCKED;
-    }
+	// Optional assertion
+    assert(iByte < g_iMaxVisibilityByte);
+    const unsigned char* ToReturn = cVisTable + iByte;
 
-    return VIS_BLOCKED;
+    return (*ToReturn & (1 << iBit)) ? VIS_VISIBLE : VIS_BLOCKED;
 }
 
 void cNodeMachine::SetVisibilityFromTo(int iFrom, int iTo, bool bVisible) {
@@ -97,21 +97,21 @@ void cNodeMachine::SetVisibilityFromTo(int iFrom, int iTo, bool bVisible) {
         return;
     }
 
-    iVisChecked[iFrom] = 1;
+	iVisChecked[iFrom] = 1;
 
-    // was int
+	// work out the position
     const long iPosition = iFrom * MAX_NODES + iTo;
     const long iByte = iPosition / 8;
     const unsigned int iBit = iPosition % 8;
 
-    if (iByte < g_iMaxVisibilityByte) {
-        unsigned char* ToChange = cVisTable + iByte;
-        if (bVisible) {
-            *ToChange |= (1 << iBit);
-        }
-        else {
-            *ToChange &= ~(1 << iBit);
-        }
+	// Optional assertion
+    assert(iByte < g_iMaxVisibilityByte);
+    unsigned char* ToChange = cVisTable + iByte;
+    if (bVisible) {
+        *ToChange |= (1 << iBit);
+    }
+    else {
+        *ToChange &= ~(1 << iBit);
     }
 }
 
@@ -279,13 +279,13 @@ int cNodeMachine::AddTroubledConnection(int iFrom, int iTo)
 
 bool cNodeMachine::hasAttemptedConnectionTooManyTimes(int index) const
 {
-    if (index < 0) {
+	if (index < 0 || index >= MAX_TROUBLE) { // Use MAX_TROUBLE for bounds checking [APG]RoboCop[CL]
         rblog("(trouble) hasAttemptedConnectionTooManyTimes | invalid index for hasAttemptedConnectionTooManyTimes()\n");
         // deal with invalid connection
         return false;
     }
 
-    const tTrouble &trouble = Troubles[index];
+    const tTrouble& trouble = Troubles[index];
     char msg[255];
     snprintf(msg, sizeof(msg), "(trouble) hasAttemptedConnectionTooManyTimes | Connection %d (%d->%d) has %d tries.\n", index, trouble.iFrom, trouble.iTo, trouble.iTries);
     rblog(msg);
@@ -803,7 +803,7 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
 #endif
     // Just in case
     if (static_cast<int>(Start.x) == 9999 || static_cast<int>(End.x) == 9999)
-        return false;
+        return 0;
 
     // Quick & dirty check whether we can go through...
     // This is simply to quickly decide whether the move is impossible
@@ -814,7 +814,7 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
 #endif
 
     if (tr.flFraction < 1.0f)
-        return false;
+        return 0;
 
     // If either start/end is on ladder, assume we can fly without falling
     // but still check whether a human hull can go through
@@ -856,14 +856,14 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
         if (Height > PreviousHeight) {    // Going upwards
             if (Height - PreviousHeight > MAX_JUMPHEIGHT) {
                 //printf("   too high for upward jump\n") ;
-                return false;
+                return 0;
             }
         } else {                  // Going downwards
             if (PreviousHeight - Height > MAX_FALLHEIGHT)
                 if (UTIL_PointContents(Floor + Vector(0, 0, 5))
                     != CONTENTS_WATER)
                     //{printf("   too high for a downward fall not in water\n") ;
-                    return false;    // Falling from too high not in water
+                    return 0;    // Falling from too high not in water
             //}
             //else printf("     ouf we are in water\n") ;
         }
@@ -882,13 +882,13 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
     if (Height > PreviousHeight) {       // Going upwards
         if (Height - PreviousHeight > MAX_JUMPHEIGHT) {
             //printf("   too high for upward jump\n") ;
-            return false;
+            return 0;
         }
     } else {                     // Going downwards
         if (PreviousHeight - Height > MAX_FALLHEIGHT)
             if (UTIL_PointContents(End) != CONTENTS_WATER) {
                 //printf("   too high for a downward fall not in water\n") ;
-                return false;       // Falling from too high not in water
+                return 0;       // Falling from too high not in water
             }
         //else printf("     ouf we are in water\n") ;
     }
@@ -901,7 +901,7 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
     // TODO
 
     // Success !
-    return true;
+    return 1;
 }
 
 // Adding a node: another way...

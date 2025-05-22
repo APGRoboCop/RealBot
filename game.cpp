@@ -346,12 +346,9 @@ void cGame::SelectName(char *name) const
         const int iLimit = iNameIndex;  // remember this.
 
         // make sure it is not checked yet
-        while (iNameUsed[iNameIndex]) {
-            // check again
-            if (iNameUsed[iNameIndex] == false)
-                break;
+    	while (iNameUsed[iNameIndex]) {
 
-            // add up
+    		// add up
             iNameIndex++;
 
             // make sure that it does not check out of range
@@ -370,11 +367,11 @@ void cGame::SelectName(char *name) const
 
         // check if this name is used
         for (int iIndex = 1; iIndex <= gpGlobals->maxClients; iIndex++) {
-	        const edict_t* pPlayer = INDEXENT(iIndex);
+            const edict_t* pPlayer = INDEXENT(iIndex);
             if (pPlayer && !pPlayer->free) {
                 if (std::strcmp(cBotNames[iNameIndex], STRING(pPlayer->v.netname))
                     == 0) {
-                    // atten tion, this namehas been used.
+                    // attention, this name has been used.
                     bUsed = true;
                     break;
                 }
@@ -712,7 +709,7 @@ void REALBOT_PRINT(cBot *pBot, const char *Function, const char *msg) {
     if (Game.bDebug > -2) {
         if (Game.bDebug == -1) {
             rblog(cMessage);
-        } else if (Game.bDebug == botIndex && botIndex > -1) {
+        } else if (Game.bDebug == botIndex /*&& botIndex > -1*/) {
             rblog(cMessage);
         }
     }

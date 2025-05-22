@@ -75,6 +75,7 @@ bool CBaseBot::IsShootableThruObstacle(Vector vecDest)
 */
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstring>
 #include <extdll.h>
@@ -633,12 +634,11 @@ bool cBot::isSeeingEnemy() {
 	if (isBlindedByFlashbang()) {
 		return false;
 	}
+	Vector enemyBody = pEnemyEdict->v.origin; // Renamed from vBody to enemyBody - [APG]RoboCop[CL]
+	Vector enemyHead = pEnemyEdict->v.origin + pEnemyEdict->v.view_ofs; // Renamed from vHead to enemyHead
 
-	Vector vBody = pEnemyEdict->v.origin;
-	Vector vHead = pEnemyEdict->v.origin + pEnemyEdict->v.view_ofs;
-
-	const bool bodyInFOV = FInViewCone(&vBody, pEdict) && FVisible(vBody, pEdict);
-	const bool headInFOV = FInViewCone(&vHead, pEdict) && FVisible(vHead, pEdict);
+	const bool bodyInFOV = FInViewCone(&enemyBody, pEdict) && FVisible(enemyBody, pEdict);
+	const bool headInFOV = FInViewCone(&enemyHead, pEdict) && FVisible(enemyHead, pEdict);
 	if (bodyInFOV || headInFOV) {
 		return true;
 	}
@@ -672,9 +672,9 @@ void cBot::AimAtEnemy() {
 	Vector vTarget;
 	if (bot_skill <= 1)
 		vTarget = pEnemyEdict->v.origin + pEnemyEdict->v.view_ofs * RANDOM_FLOAT(-0.5f, 1.1f); // aim for the head
-	else if (bot_skill > 1 && bot_skill < 4)
+	else if (bot_skill < 4) // bot_skill > 1 is implied here? [APG]RoboCop[CL]
 		vTarget = pEnemyEdict->v.origin +
-				  pEnemyEdict->v.view_ofs * RANDOM_FLOAT(-2.5f, 2.5f); // aim for the head more fuzzy
+		pEnemyEdict->v.view_ofs * RANDOM_FLOAT(-2.5f, 2.5f); // aim for the head more fuzzy
 	else
 		vTarget = pEnemyEdict->v.origin; // aim for body
 
@@ -1478,7 +1478,7 @@ void cBot::InteractWithPlayers() {
 	// ------------------------------------------------
 	// RESULT > -1 ; ENEMY FOUND / NO SPECIFIC REACTION
 	// ------------------------------------------------
-	if (result > -1 && result < 4) {
+	if (result > -1 /*&& result < 4*/) {
 
 		// VIP: When we found an enemy, we have a problem.
 		if (vip) {
@@ -1802,7 +1802,9 @@ bool cBot::Defuse() {
 	// Remember, pent=c4 now!
 
 	// Calculate the distance between our position to the c4
+	assert(pent != nullptr);
 	const Vector vC4 = pent->v.origin;
+
 	const float distance = func_distance(pEdict->v.origin, vC4);
 
 	// can see C4
@@ -2440,9 +2442,9 @@ void cBot::rprint(const char *Function, const char *msg)
  * @param Function
  * @param msg
  */
-void cBot::rprint_trace(const char *Function, const char *msg)
+void cBot::rprint_trace(const char* Function, const char* msg)
 {
-	if (Game.messageVerbosity > 1) {
+	if (Game.messageVerbosity > 2) { // Adjust verbosity level for trace
 		REALBOT_PRINT(this, Function, msg);
 	}
 }
@@ -2452,8 +2454,9 @@ void cBot::rprint_trace(const char *Function, const char *msg)
  * @param Function
  * @param msg
  */
-void cBot::rprint_normal(const char *Function, const char *msg) {
-	if (Game.messageVerbosity > 1) {
+void cBot::rprint_normal(const char* Function, const char* msg)
+{
+	if (Game.messageVerbosity > 1) { // Keep verbosity level for normal
 		REALBOT_PRINT(this, Function, msg);
 	}
 }

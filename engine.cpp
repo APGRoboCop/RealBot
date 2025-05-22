@@ -632,5 +632,5 @@ GetEngineFunctions(enginefuncs_t *pengfuncsFromEngine,
     meta_engfuncs.pfnSetClientMaxspeed = pfnSetClientMaxspeed;
     meta_engfuncs.pfnGetPlayerUserId = pfnGetPlayerUserId;
     std::memcpy(pengfuncsFromEngine, &meta_engfuncs, sizeof(enginefuncs_t));
-    return true;
+    return 1;
 }
