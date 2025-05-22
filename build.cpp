@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 // 14/11/04
 // Updated Build nr; it compiles in MSVC again, and should compile in Linux... i did not
 // change that much.

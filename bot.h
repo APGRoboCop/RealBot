@@ -408,7 +408,7 @@ public:
 
     void FireWeapon();
 
-    static int ReturnTurnedAngle(float speed, float current, float ideal);
+    static vec_t ReturnTurnedAngle(float speed, float current, float ideal);
 
     int FindEnemy();
 

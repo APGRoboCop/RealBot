@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 /**
   * RealBot : Artificial Intelligence
   * Version : Work In Progress
@@ -1704,7 +1706,7 @@ void cBot::JoinTeam() {
 	}
 }
 
-int cBot::ReturnTurnedAngle(float speed, float current, float ideal) {
+vec_t cBot::ReturnTurnedAngle(float speed, float current, float ideal) {
 
 	// hope this fix the unnescesary turning of bots.
 	// how? we save the values here, andc alculate the new value.

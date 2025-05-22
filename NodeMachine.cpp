@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 /**
   * RealBot : Artificial Intelligence
   * Version : Work In Progress
@@ -64,63 +66,52 @@ extern int draw_nodepath;
 //---------------------------------------------------------
 //CODE: CHEESEMONSTER
 
-int cNodeMachine::GetVisibilityFromTo(int iFrom, int iTo) const // BERKED
-{
-    // prevent negative indexes on iVisChecked below -- BERKED
-    if (iFrom >= 0 && iFrom < 4096 && iTo >= 0 && iTo < 4096) {
-        if (iVisChecked[iFrom] == 0)
-            return VIS_UNKNOWN;       // we have no clue
+int cNodeMachine::GetVisibilityFromTo(int iFrom, int iTo) const {
+    if (iFrom < 0 || iFrom >= MAX_NODES || iTo < 0 || iTo >= MAX_NODES) {
+        rblog("ERROR: Index out of bounds in GetVisibilityFromTo! Returning VIS_BLOCKED\n");
+        return VIS_BLOCKED;
     }
-    else {
-        rblog("ERROR: Negative or out of bound index on iFrom! Returning Visibility NULL\n");
-        return 0;
+
+    if (iVisChecked[iFrom] == 0) {
+        return VIS_UNKNOWN;
     }
-	
+
     // was int
 	
     // work out the position
     const long iPosition = iFrom * MAX_NODES + iTo;
-	
-    const long iByte = static_cast<int>(iPosition / 8);
+    const long iByte = iPosition / 8;
     const unsigned int iBit = iPosition % 8;
-	
-    if (iByte < static_cast<long>(g_iMaxVisibilityByte)) {
-        // Get the Byte that this is in
+
+    if (iByte < g_iMaxVisibilityByte) {
         const unsigned char* ToReturn = cVisTable + iByte;
-        // get the bit in the byte
-        return (*ToReturn & 1 << iBit) > 0 ? VIS_VISIBLE : VIS_BLOCKED;       // BERKED
+        return (*ToReturn & (1 << iBit)) ? VIS_VISIBLE : VIS_BLOCKED;
     }
-	
-    return VIS_BLOCKED;          // BERKED
+
+    return VIS_BLOCKED;
 }
 
 void cNodeMachine::SetVisibilityFromTo(int iFrom, int iTo, bool bVisible) {
-    // prevent negative indexes on iVisChecked below, fixing SEGV -- BERKED
-    if (iFrom < 0 || iFrom > MAX_NODES || iTo < 0 || iTo > MAX_NODES) {
+    if (iFrom < 0 || iFrom >= MAX_NODES || iTo < 0 || iTo >= MAX_NODES) {
+        rblog("ERROR: Index out of bounds in SetVisibilityFromTo!\n");
         return;
     }
 
-    if (iFrom >= 0 && iFrom < 4096) {
-        iVisChecked[iFrom] = 1;      // WE HAVE CHECKED THIS ONE
-    }
-    else {
-        rblog("ERROR: Negative or out of bound index on iFrom! Returning Visibility NULL\n");
-        return;
-    }
+    iVisChecked[iFrom] = 1;
 
     // was int
     const long iPosition = iFrom * MAX_NODES + iTo;
-
-    const long iByte = static_cast<int>(iPosition / 8);
+    const long iByte = iPosition / 8;
     const unsigned int iBit = iPosition % 8;
 
-    if (iByte < static_cast<long>(g_iMaxVisibilityByte)) {
-        unsigned char *ToChange = cVisTable + iByte;
-
-        if (bVisible)
-            *ToChange |= 1 << iBit;
-        else
+    if (iByte < g_iMaxVisibilityByte) {
+        unsigned char* ToChange = cVisTable + iByte;
+        if (bVisible) {
+            *ToChange |= (1 << iBit);
+        }
+        else {
             *ToChange &= ~(1 << iBit);
+        }
     }
 }
 
@@ -131,9 +122,11 @@ void cNodeMachine::ClearVisibilityTable() const
     }
 }
 
-void cNodeMachine::FreeVisibilityTable() const
-{
-    free(cVisTable);
+void cNodeMachine::FreeVisibilityTable() {
+    if (cVisTable) {
+        free(cVisTable);
+        cVisTable = nullptr;
+    }
 }
 
 //---------------------------------------------------------
@@ -738,7 +731,7 @@ static float horizontal_distance(const Vector& a, const Vector& b) {
     return std::sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 }
 
-#define STEP    20              //Incremental move
+constexpr int STEP = 20;        //Incremental move; 
 
 // Return the floor below V
 // TO BE IMPROVED use pEntityCOntaining
@@ -2552,12 +2545,12 @@ void cNodeMachine::makeAllWaypointsAvailable()
 //    rblog("All nodes set to AVAILABLE\n");
 }
 
-bool cNodeMachine::isValidNodeIndex(int index) const //TODO: Experimental [APG]RoboCop[CL]
+bool cNodeMachine::isValidNodeIndex(int index) //TODO: Experimental [APG]RoboCop[CL]
 {
 	return index >= 0 && index < MAX_NODES;
 }
 
-bool cNodeMachine::isInvalidNode(int index) const //TODO: Experimental [APG]RoboCop[CL]
+bool cNodeMachine::isInvalidNode(int index) //TODO: Experimental [APG]RoboCop[CL]
 {
 	return !isValidNodeIndex(index);
 }
@@ -4176,7 +4169,7 @@ enum : std::uint16_t
 	DEBUG_BMP_HEIGHT = 2048
 };
 
-static char *bmp_buffer;
+static unsigned char *bmp_buffer;
 static float maxx, maxy, minx, miny;
 static float scale;
 
@@ -4187,7 +4180,7 @@ static void InitDebugBitmap() {
         free(bmp_buffer);         // reliability check, free BMP buffer if already allocated
 
     bmp_buffer = nullptr;
-    bmp_buffer = static_cast<char*>(malloc(DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT));    // allocate memory
+    bmp_buffer = static_cast<unsigned char*>(malloc(DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT));    // allocate memory
     if (bmp_buffer == nullptr) {
         std::fprintf(stderr,
                 "InitDebugBitmap(): unable to allocate %d kbytes for BMP buffer!\n",
@@ -4578,7 +4571,7 @@ void cNodeMachine::MarkMeredians() {
 
 // Put a cross on all nodes in RBN + draw lines to all neighbours
 
-void cNodeMachine::PlotNodes(int NeighbourColor, int NodeColor) const
+void cNodeMachine::PlotNodes(unsigned char NeighbourColor, unsigned char NodeColor) const
 {
     int i;
 
@@ -4600,7 +4593,7 @@ void cNodeMachine::PlotNodes(int NeighbourColor, int NodeColor) const
 
 // Put a small cross at all goal points
 
-void cNodeMachine::PlotGoals(int color) const
+void cNodeMachine::PlotGoals(unsigned char color) const
 {
 	for (int i = 0; i < MAX_GOALS && Goals[i].iNode >= 0; i++) {
 		const Vector v = Nodes[Goals[i].iNode].origin;
@@ -4609,7 +4602,7 @@ void cNodeMachine::PlotGoals(int color) const
 }
 
 // Plot the computed paths for all life bots
-void cNodeMachine::PlotPaths(int Tcolor, int CTcolor) const
+void cNodeMachine::PlotPaths(unsigned char Tcolor, unsigned char CTcolor) const
 {
 	for (int iBot = 0; iBot < 32; iBot++) {
         if (bots[iBot].bIsUsed) {

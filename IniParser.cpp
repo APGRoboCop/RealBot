@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 /**
   * RealBot : Artificial Intelligence
   * Version : Work In Progress
@@ -716,7 +718,7 @@ void INI_PARSE_IAD() {
 					if (wordtype == WORD_AREAZ)
 						AreaZ = static_cast<float>(INI_WordValueINT(linefeed));
 
-					if (AreaX != 9999 && AreaY != 9999 && AreaZ != 9999) {
+					if (AreaX != 9999.0f && AreaY != 9999.0f && AreaZ != 9999.0f) {
 						// add this to goal
 						rblog("IAD: Adding an important area/goal\n");
 						NodeMachine.addGoal(nullptr, GOAL_IMPORTANT, Vector(AreaX, AreaY, AreaZ));

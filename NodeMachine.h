@@ -175,7 +175,7 @@ public:
 
     void SetVisibilityFromTo(int iFrom, int iTo, bool bVisible);
 
-    void FreeVisibilityTable() const;
+    void FreeVisibilityTable();
 
     // Some debugging by EVY
     void dump_goals() const;
@@ -209,17 +209,17 @@ private:
 
     static void MarkMeredians();
 
-    void PlotNodes(int NeighbourColor, int NodeColor) const;
+    void PlotNodes(unsigned char NeighbourColor, unsigned char NodeColor) const;
 
-    void PlotPaths(int Tcolor, int CTcolor) const;
+    void PlotPaths(unsigned char Tcolor, unsigned char CTcolor) const;
 
-    void PlotGoals(int GoalColor) const;
+    void PlotGoals(unsigned char color) const;
 
     static void makeAllWaypointsAvailable();
 
-    bool isValidNodeIndex(int index) const;
+    static bool isValidNodeIndex(int index);
 
-    bool isInvalidNode(int index) const;
+    static bool isInvalidNode(int index);
 
     void buildPath(int nodeStartIndex, int nodeTargetIndex, int botIndex, cBot* pBot);
 
