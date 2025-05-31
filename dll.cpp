@@ -1457,28 +1457,25 @@ void RealBot_ServerCommand() {
                         "REALBOT: Removing %d counter-terrorist bots.",
                         kick_amount_bots);
         }
-    } else if (FStrEq(pcmd, "roundlimit")) {
-
+    }
+    else if (FStrEq(pcmd, "roundlimit")) {
         // Check if Arguments are valid
-        if (arg2 != nullptr && *arg2 != 0
-            && (arg1 != nullptr && *arg1 != 0)) {
-            int s1 = -1, s2 = -1;
-
+        if (arg2 != nullptr && *arg2 != 0 && arg1 != nullptr && *arg1 != 0) {
             // argument 1
-            if (arg1 != nullptr && *arg1 != 0)
-                s1 = std::atoi(arg1);
-
+            const int s1 = std::atoi(arg1);
             // argument 2
-            if (arg2 != nullptr && *arg2 != 0)
-                s2 = std::atoi(arg2);
+            const int s2 = std::atoi(arg2);
             Game.SetPlayingRounds(s1, s2);
             snprintf(cMessage, sizeof(cMessage),
-                    "REALBOT: Bots play at minimum %d and at maximum %d rounds.\n",
-                    Game.GetMinPlayRounds(), Game.GetMaxPlayRounds());
-        } else
+                "REALBOT: Bots play at minimum %d and at maximum %d rounds.\n",
+                Game.GetMinPlayRounds(), Game.GetMaxPlayRounds());
+        }
+        else {
             snprintf(cMessage, sizeof(cMessage),
-                    "REALBOT: No(t) (enough) valid arguments given.");
-    } else if (FStrEq(pcmd, "setrandom")) {
+                "REALBOT: No(t) (enough) valid arguments given.");
+        }
+	}
+    else if (FStrEq(pcmd, "setrandom")) {
         int s1 = -2, s2 = -2;
 
         // argument 1
