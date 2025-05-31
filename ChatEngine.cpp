@@ -149,23 +149,15 @@ void cChatEngine::think() {
     // loop over the sentence character by character
     while (c < sentenceLength) {
         // protection matters:
-        // Stefan: this is weird, this can never happen?!
-        if (c > sentenceLength)
-            break;
-
         if (c < 0)
             break;
         // End of protection matters
 
         // Step: Check character to identify the end of a word.
-        if (c >= sentenceLength || sentence[c] == ' ' || sentence[c] == '\n' ||
+        if (sentence[c] == ' ' || sentence[c] == '\n' ||
             sentence[c] == '.' || sentence[c] == '?' || sentence[c] == '!') {
             // Now find the word and add up scores on the proper score blocks.
-
-            if (c >= sentenceLength)
-                word[wc] = '\0'; // Null-terminate the word properly. [APG]RoboCop[CL]
-
-        	// not a good word (too small)
+            // not a good word (too small)
             if (std::strlen(word) <= 0) {
                 // SERVER_PRINT("This is not a good word!\n");
             }
@@ -207,7 +199,8 @@ void cChatEngine::think() {
         // add up.
         c++;
         wc++;
-    }                      // end of loop
+    }
+    // end of loop
 
     // now loop through all blocks and find the one with the most score:
     int iMaxScore = -1;
