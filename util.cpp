@@ -61,9 +61,9 @@
 
 #include <cctype>
 
-#ifndef _WIN32
+/*#ifndef _WIN32
 #define snprintf std::snprintf //-V1059
-#endif
+#endif*/
 
 extern int mod_id;
 extern cBot bots[32];
@@ -83,7 +83,7 @@ Vector UTIL_VecToAngles(const Vector& vec) {
 // Overloaded to add IGNORE_GLASS
 void
 UTIL_TraceLine(const Vector& vecStart, const Vector& vecEnd,
-	IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass,
+	const IGNORE_MONSTERS igmon, const IGNORE_GLASS ignoreGlass,
 	edict_t* pentIgnore, TraceResult* ptr) {
 	TRACE_LINE(vecStart, vecEnd,
 		(igmon ==
@@ -93,7 +93,7 @@ UTIL_TraceLine(const Vector& vecStart, const Vector& vecEnd,
 
 void
 UTIL_TraceLine(const Vector& vecStart, const Vector& vecEnd,
-	IGNORE_MONSTERS igmon, edict_t* pentIgnore,
+	const IGNORE_MONSTERS igmon, edict_t* pentIgnore,
 	TraceResult* ptr) {
 	TRACE_LINE(vecStart, vecEnd, (igmon == ignore_monsters),
 		pentIgnore, ptr);
@@ -101,8 +101,7 @@ UTIL_TraceLine(const Vector& vecStart, const Vector& vecEnd,
 
 void
 UTIL_TraceHull(const Vector& vecStart, const Vector& vecEnd,
-	IGNORE_MONSTERS igmon, int hullNumber, edict_t* pentIgnore,
-	TraceResult* ptr) {
+	const IGNORE_MONSTERS igmon, const int hullNumber, edict_t* pentIgnore,TraceResult* ptr) {
 	TRACE_HULL(vecStart, vecEnd, (igmon == ignore_monsters), hullNumber, pentIgnore, ptr);
 }
 
@@ -111,7 +110,7 @@ void UTIL_MakeVectors(const Vector& vecAngles) {
 }
 
 edict_t* UTIL_FindEntityInSphere(edict_t* pentStart,
-	const Vector& vecCenter, float flRadius) {
+	const Vector& vecCenter, const float flRadius) {
 	edict_t* pentEntity = FIND_ENTITY_IN_SPHERE(pentStart, vecCenter, flRadius);
 
 	if (!FNullEnt(pentEntity))
@@ -153,7 +152,7 @@ void UTIL_SetOrigin(entvars_t* pev, const Vector& vecOrigin) {
 	SET_ORIGIN(ENT(pev), vecOrigin);
 }
 
-void ClientPrint(edict_t* pEntity, int msg_dest, const char* msg_name) {
+void ClientPrint(edict_t* pEntity, const int msg_dest, const char* msg_name) {
 
 	if (gmsgTextMsg == 0)
 		gmsgTextMsg = REG_USER_MSG("TextMsg", -1);
@@ -165,7 +164,7 @@ void ClientPrint(edict_t* pEntity, int msg_dest, const char* msg_name) {
 	MESSAGE_END();
 }
 
-void UTIL_ClientPrintAll(int msg_dest, const char* msg_name, const char* param1,
+void UTIL_ClientPrintAll(const int msg_dest, const char* msg_name, const char* param1,
 	const char* param2, const char* param3,
 	const char* param4) {
 	if (gmsgTextMsg == 0)
@@ -199,7 +198,7 @@ void UTIL_SayText(const char* pText, edict_t* pEdict) {
 	MESSAGE_END();
 }
 
-void UTIL_HostSay(edict_t* pEntity, int teamonly, char* message) {
+void UTIL_HostSay(edict_t* pEntity, const int teamonly, char* message) {
 	char text[128];
 	char* pc;
 
@@ -216,9 +215,9 @@ void UTIL_HostSay(edict_t* pEntity, int teamonly, char* message) {
 
 	// turn on color set 2  (color on,  no sound)
 	if (teamonly)
-		std::sprintf(text, "%c(TEAM) %s: ", 2, STRING(pEntity->v.netname));
+		snprintf(text, sizeof(text), "%c(TEAM) %s: %s\n", 2, STRING(pEntity->v.netname), message);
 	else
-		std::sprintf(text, "%c%s: ", 2, STRING(pEntity->v.netname));
+		snprintf(text, sizeof(text), "%c%s: %s\n", 2, STRING(pEntity->v.netname), message);
 
 	if (const unsigned j = sizeof(text) - 2 - std::strlen(text); std::strlen(message) > j)
 		message[j] = 0;
@@ -310,9 +309,9 @@ int UTIL_GetTeam(edict_t* pEntity) {
 			std::strcmp(model_name, "arab") == 0 ||  // old L337 Krew
 			std::strcmp(model_name, "leet") == 0 ||  // L337 Krew
 			std::strcmp(model_name, "artic") == 0 || // Artic Avenger
-			std::strcmp(model_name, "arctic") == 0 ||        // Artic Avenger - fix for arctic? - seemed a typo?
-			std::strcmp(model_name, "guerilla") == 0)      // Gorilla Warfare
-			//(strcmp(model_name, "militia") == 0))       // CZ Militia
+			std::strcmp(model_name, "arctic") == 0 ||        // Arctic Avenger - fix for arctic? - seemed a typo?
+			std::strcmp(model_name, "guerilla") == 0 ||      // Gorilla Warfare
+			std::strcmp(model_name, "militia") == 0)       // CZ Militia
 		{
 			return 0; // team Terrorists
 		}
@@ -321,7 +320,7 @@ int UTIL_GetTeam(edict_t* pEntity) {
 			std::strcmp(model_name, "sas") == 0 ||    // UK SAS
 			std::strcmp(model_name, "gign") == 0 ||   // French GIGN
 			std::strcmp(model_name, "vip") == 0 ||    // VIP
-			std::strcmp(model_name, "spetsnatz") == 0)        // CZ Spetsnatz
+			std::strcmp(model_name, "spetsnaz") == 0)        // CZ Spetsnaz
 		{
 			return 1; // team Counter-Terrorists
 		}
@@ -361,7 +360,7 @@ cBot* UTIL_GetBotPointer(edict_t* pEdict) {
 	for (cBot& bot : bots)
 	{
 		if (bot.pEdict == pEdict) {
-			return (&bot);
+			return &bot;
 		}
 	}
 
@@ -429,7 +428,7 @@ Vector VecBModelOrigin(edict_t* pEdict) {
 	return pEdict->v.absmin + (pEdict->v.size * 0.5f);
 }
 
-void UTIL_ShowMenu(edict_t* pEdict, int slots, int displaytime, bool needmore,
+void UTIL_ShowMenu(edict_t* pEdict, const int slots, const int displaytime, const bool needmore,
 	const char* pText) {
 	if (gmsgShowMenu == 0)
 		gmsgShowMenu = REG_USER_MSG("ShowMenu", -1);
@@ -508,7 +507,7 @@ void UTIL_LogPrintf(const char* fmt, ...) {
 	ALERT(at_logged, "%s", string);
 }
 
-void UTIL_BotPressKey(cBot* pBot, int type) {
+void UTIL_BotPressKey(cBot* pBot, const int type) {
 	if (type == IN_JUMP || type == IN_DUCK) {
 		if (pBot->isFreezeTime()) {
 			pBot->rprint_trace("UTIL_BotPressKey", "IN_JUMP or IN_DUCK press requested, but in freezetime - IGNORING");
@@ -575,7 +574,7 @@ void UTIL_BotPressKey(cBot* pBot, int type) {
 	pBot->pEdict->v.button |= type;
 }
 
-int UTIL_GiveWeaponType(int weapon_id) {
+int UTIL_GiveWeaponType(const int weapon_id) {
 	int kind = NONE;
 	// 30/07/04 by Josh
 	// Use switch instead of multiple if
@@ -620,73 +619,43 @@ int UTIL_GiveWeaponType(int weapon_id) {
 // Return weapon ID (depended on mod)
 int UTIL_GiveWeaponId(const char* name) {
 	if (mod_id == CSTRIKE_DLL) {
-		if (name != nullptr && std::strcmp(name, "weapon_knife") == 0)
-			return CS_WEAPON_KNIFE;
-		if (name != nullptr && std::strcmp(name, "weapon_c4") == 0)
-			return CS_WEAPON_C4;
-		if (name != nullptr && std::strcmp(name, "weapon_mp5navy") == 0)
-			return CS_WEAPON_MP5NAVY;
-		if (name != nullptr && std::strcmp(name, "weapon_ak47") == 0)
-			return CS_WEAPON_AK47;
-		if (name != nullptr && std::strcmp(name, "weapon_m3") == 0)
-			return CS_WEAPON_M3;
-		if (name != nullptr && std::strcmp(name, "weapon_aug") == 0)
-			return CS_WEAPON_AUG;
-		if (name != nullptr && std::strcmp(name, "weapon_sg552") == 0)
-			return CS_WEAPON_SG552;
-		if (name != nullptr && std::strcmp(name, "weapon_m249") == 0)
-			return CS_WEAPON_M249;
-		if (name != nullptr && std::strcmp(name, "weapon_xm1014") == 0)
-			return CS_WEAPON_XM1014;
-		if (name != nullptr && std::strcmp(name, "weapon_p90") == 0)
-			return CS_WEAPON_P90;
-		if (name != nullptr && std::strcmp(name, "weapon_tmp") == 0)
-			return CS_WEAPON_TMP;
-		if (name != nullptr && std::strcmp(name, "weapon_m4a1") == 0)
-			return CS_WEAPON_M4A1;
-		if (name != nullptr && std::strcmp(name, "weapon_awp") == 0)
-			return CS_WEAPON_AWP;
-		if (name != nullptr && std::strcmp(name, "weapon_fiveseven") == 0)
-			return CS_WEAPON_FIVESEVEN;
-		if (name != nullptr && std::strcmp(name, "weapon_ump45") == 0)
-			return CS_WEAPON_UMP45;
-		if (name != nullptr && std::strcmp(name, "weapon_sg550") == 0)
-			return CS_WEAPON_SG550;
-		if (name != nullptr && std::strcmp(name, "weapon_scout") == 0)
-			return CS_WEAPON_SCOUT;
-		if (name != nullptr && std::strcmp(name, "weapon_mac10") == 0)
-			return CS_WEAPON_MAC10;
-		if (name != nullptr && std::strcmp(name, "weapon_g3sg1") == 0)
-			return CS_WEAPON_G3SG1;
-		if (name != nullptr && std::strcmp(name, "weapon_elite") == 0)
-			return CS_WEAPON_ELITE;
-		if (name != nullptr && std::strcmp(name, "weapon_p228") == 0)
-			return CS_WEAPON_P228;
-		if (name != nullptr && std::strcmp(name, "weapon_deagle") == 0)
-			return CS_WEAPON_DEAGLE;
-		if (name != nullptr && std::strcmp(name, "weapon_usp") == 0)
-			return CS_WEAPON_USP;
-		if (name != nullptr && std::strcmp(name, "weapon_glock18") == 0)
-			return CS_WEAPON_GLOCK18;
-		// Counter-Strike 1.6
-		if (name != nullptr && std::strcmp(name, "weapon_famas") == 0)
-			return CS_WEAPON_FAMAS;
-		if (name != nullptr && std::strcmp(name, "weapon_galil") == 0)
-			return CS_WEAPON_GALIL;
-		
-		// 06/07/04
-		// Unconfirmed for handling shield
-		// 31.08.04 Frashman: moved shield string before unknown weapon, not after it
-		if (name != nullptr && std::strcmp(name, "weapon_shield") == 0)
-			return CS_WEAPON_SHIELD;
-		
+		if (name == nullptr) {
+			rblog("UTIL_GiveWeaponId: Unknown weapon name (null)\n");
+			return -1;
+		}
+
+		const std::string_view weaponName(name);
+
+		if (weaponName == "weapon_knife") return CS_WEAPON_KNIFE;
+		if (weaponName == "weapon_c4") return CS_WEAPON_C4;
+		if (weaponName == "weapon_mp5navy") return CS_WEAPON_MP5NAVY;
+		if (weaponName == "weapon_ak47") return CS_WEAPON_AK47;
+		if (weaponName == "weapon_m3") return CS_WEAPON_M3;
+		if (weaponName == "weapon_aug") return CS_WEAPON_AUG;
+		if (weaponName == "weapon_sg552") return CS_WEAPON_SG552;
+		if (weaponName == "weapon_m249") return CS_WEAPON_M249;
+		if (weaponName == "weapon_xm1014") return CS_WEAPON_XM1014;
+		if (weaponName == "weapon_p90") return CS_WEAPON_P90;
+		if (weaponName == "weapon_tmp") return CS_WEAPON_TMP;
+		if (weaponName == "weapon_m4a1") return CS_WEAPON_M4A1;
+		if (weaponName == "weapon_awp") return CS_WEAPON_AWP;
+		if (weaponName == "weapon_fiveseven") return CS_WEAPON_FIVESEVEN;
+		if (weaponName == "weapon_ump45") return CS_WEAPON_UMP45;
+		if (weaponName == "weapon_sg550") return CS_WEAPON_SG550;
+		if (weaponName == "weapon_scout") return CS_WEAPON_SCOUT;
+		if (weaponName == "weapon_mac10") return CS_WEAPON_MAC10;
+		if (weaponName == "weapon_g3sg1") return CS_WEAPON_G3SG1;
+		if (weaponName == "weapon_elite") return CS_WEAPON_ELITE;
+		if (weaponName == "weapon_p228") return CS_WEAPON_P228;
+		if (weaponName == "weapon_deagle") return CS_WEAPON_DEAGLE;
+		if (weaponName == "weapon_usp") return CS_WEAPON_USP;
+		if (weaponName == "weapon_glock18") return CS_WEAPON_GLOCK18;
+		if (weaponName == "weapon_famas") return CS_WEAPON_FAMAS;
+		if (weaponName == "weapon_galil") return CS_WEAPON_GALIL;
+		if (weaponName == "weapon_shield") return CS_WEAPON_SHIELD;
+
 		char buffer[80];
-		if (name != nullptr) {
-			snprintf(buffer, 79, "UTIL_GiveWeaponId: Unknown weapon name %s\n", name);
-		}
-		else {
-			snprintf(buffer, 79, "UTIL_GiveWeaponId: Unknown weapon name (null)\n");
-		}
+		snprintf(buffer, sizeof(buffer) - 1, "UTIL_GiveWeaponId: Unknown weapon name %s\n", name);
 		rblog(buffer);
 	}
 
@@ -799,7 +768,7 @@ void UTIL_BotSprayLogo(edict_t* pEntity, const char* logo_name) {
 }
 
 // Give a radio message botty boy!
-void UTIL_BotRadioMessage(cBot* pBot, int radio, const char* arg1, const char* arg2) {
+void UTIL_BotRadioMessage(cBot* pBot, const int radio, const char* arg1, const char* arg2) {
 	// To be sure the console will only change when we MAY change.
 	// The values will only be changed when console_nr is 0
 	if (pBot->console_nr == 0) {
@@ -830,31 +799,31 @@ void UTIL_BotRadioMessage(cBot* pBot, int radio, const char* arg1, const char* a
 // UTIL_getGrenadeType function // - Stefan
 //////////////////////////////////
 int UTIL_GetGrenadeType(edict_t* pEntity) {
-	constexpr int length = 32;
+	if (!pEntity || !pEntity->v.model)
+	{
+		return 0;
+	}
 
-	char model_name[length] = {};
+	const std::string_view model_name(STRING(pEntity->v.model));
 
-	std::strncpy(model_name, STRING(pEntity->v.model), length - 1);
-	model_name[length - 1] = 0;      // Make sure it is NULL terminated
-
-	if (std::strcmp(model_name, "models/w_hegrenade.mdl") == 0) return 1;          // He grenade
-	if (std::strcmp(model_name, "models/w_flashbang.mdl") == 0) return 2;          // FlashBang
-	if (std::strcmp(model_name, "models/w_smokegrenade.mdl") == 0) return 3;       // SmokeGrenade
-	if (std::strcmp(model_name, "models/w_c4.mdl") == 0) return 4;                 // C4 Explosive
+	if (model_name == "models/w_hegrenade.mdl") return 1;          // He grenade
+	if (model_name == "models/w_flashbang.mdl") return 2;          // FlashBang
+	if (model_name == "models/w_smokegrenade.mdl") return 3;       // SmokeGrenade
+	if (model_name == "models/w_c4.mdl") return 4;                 // C4 Explosive
 
 	// when an empty string, let us know we missed something
-	if (model_name[0] == '\0') {
+	if (model_name.empty()) {
 
 		char msg[512] = {};
 
-		snprintf(msg, sizeof(msg), "UTIL_GetGrenadeType unknown grenade model: %s\n", model_name);
+		snprintf(msg, sizeof(msg), "UTIL_GetGrenadeType unknown grenade model: %s\n", model_name.data() ? model_name.data() : "(null)");
 	}
 
 	return 0;
 }
 
 // 2 functions from podbot source
-unsigned short fixed_unsigned16(float value, float scale) {
+unsigned short fixed_unsigned16(const float value, const float scale) {
 	int output = static_cast<int>(value * scale);
 
 	output = std::max(output, 0);
@@ -863,7 +832,7 @@ unsigned short fixed_unsigned16(float value, float scale) {
 	return static_cast<unsigned short>(output);
 }
 
-short fixed_signed16(float value, float scale) {
+short fixed_signed16(const float value, const float scale) {
 	int output = static_cast<int>(value * scale);
 
 	output = std::min(output, 32767);
@@ -873,7 +842,7 @@ short fixed_signed16(float value, float scale) {
 }
 
 // Using POD/SDK source to print nice messages on the client machine
-void HUD_DrawString(int r, int g, int b, const char* msg, edict_t* edict) {
+void HUD_DrawString(const int r, const int g, const int b, const char* msg, edict_t* edict) {
 	// FROM PODBOT SOURCE
 	// Hacked together Version of HUD_DrawString
 	MESSAGE_BEGIN(MSG_ONE, SVC_TEMPENTITY, nullptr, edict);
@@ -940,7 +909,7 @@ void UTIL_SayTextBot(const char* pText, cBot* pBot) {
 				{
 					MESSAGE_BEGIN(MSG_ONE, gmsgSayText, nullptr, pPlayer);
 					WRITE_BYTE(entind);
-					std::sprintf(&szTemp[1], "%s :   %s", szName, pText);
+					snprintf(&szTemp[1], sizeof(szTemp) - 1, "%s :   %s", szName, pText);
 					WRITE_STRING(&szTemp[0]);
 					MESSAGE_END();
 				}
@@ -954,7 +923,7 @@ void UTIL_SayTextBot(const char* pText, cBot* pBot) {
 				if (!IsAlive(pPlayer)) {
 					MESSAGE_BEGIN(MSG_ONE, gmsgSayText, nullptr, pPlayer);
 					WRITE_BYTE(entind);
-					std::sprintf(&szTemp[1], "*DEAD*%s :   %s", szName, pText);
+					snprintf(&szTemp[1], sizeof(szTemp) - 1, "*DEAD*%s :   %s", szName, pText);
 					WRITE_STRING(&szTemp[0]);
 					MESSAGE_END();
 				}
@@ -975,13 +944,13 @@ void UTIL_SayTextBot(const char* pText, cBot* pBot) {
 }
 
 // This UTIL_SpeechSynth() is taken from the POD source.
-void UTIL_SpeechSynth(edict_t* pEdict, char* szMessage) {
+void UTIL_SpeechSynth(edict_t* pEdict, const char* szMessage) {
 	if (Game.bSpeechBroadcasting == false)
 		return;
 
 	char szSpeak[128];
 
-	std::sprintf(szSpeak, "speak \"%s\"\n", szMessage);
+	snprintf(szSpeak, sizeof(szSpeak), "speak \"%s\"\n", szMessage);
 	CLIENT_COMMAND(pEdict, szSpeak);
 }
 

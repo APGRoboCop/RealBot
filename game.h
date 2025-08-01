@@ -6,7 +6,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -18,9 +18,9 @@
   *
   * Pierre Marie Baty
   * Count-Floyd
-  *  
+  *
   * !! BOTS-UNITED FOREVER !!
-  *  
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -30,13 +30,16 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include <array>
+#include <string>
+#include <vector>
 
-/**
-  * GAME "handler" CLASS
-  * COPYRIGHTED BY STEFAN HENDRIKS (C) 
-  **/
+  /**
+	* GAME "handler" CLASS
+	* COPYRIGHTED BY STEFAN HENDRIKS (C)
+	**/
 
-// GAME MESSAGES
+	// GAME MESSAGES
 #define GAME_MSG_SUCCESS        0       // complete success
 #define GAME_MSG_FAILURE        1       // complete failure
 
@@ -61,8 +64,8 @@ static constexpr int MAX_BOTS = 32;
 static constexpr int MAX_NAME_LENGTH = 32;
 
 // Debug messages for realbot
-void REALBOT_PRINT(cBot * pBot, const char *Function, const char *msg);
-void REALBOT_PRINT(const char *Function, const char *msg);
+void REALBOT_PRINT(cBot* pBot, const char* Function, const char* msg);
+void REALBOT_PRINT(const char* Function, const char* msg);
 
 class cGame {
 public:

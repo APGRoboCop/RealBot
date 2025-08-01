@@ -59,7 +59,7 @@ bot_weapon_t weapon_defs[MAX_WEAPONS];  // array of weapon definitions
 static FILE *fp;
 
 // This message is sent when the Counter-Strike VGUI menu is displayed.
-void BotClient_CS_VGUI(void *p, int bot_index) {
+void BotClient_CS_VGUI(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_VGUI()\n");
     if (*static_cast<int*>(p) == 2)       // is it a team select menu?
         bots[bot_index].start_action = MSG_CS_TEAM_SELECT;
@@ -70,7 +70,7 @@ void BotClient_CS_VGUI(void *p, int bot_index) {
 }
 
 // This message is sent when a menu is being displayed in Counter-Strike.
-void BotClient_CS_ShowMenu(void *p, int bot_index) {
+void BotClient_CS_ShowMenu(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_ShowMenu()\n");
     static int state = 0;        // current state machine state
 
@@ -153,19 +153,19 @@ void BotClient_Valve_WeaponList(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_WeaponList(void *p, int bot_index) {
+void BotClient_CS_WeaponList(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_WeaponList()\n");
     // this is just like the Valve Weapon List message
     BotClient_Valve_WeaponList(p, bot_index);
 }
 
-void BotClient_Gearbox_WeaponList(void *p, int bot_index) {
+void BotClient_Gearbox_WeaponList(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_WeaponList()\n");
     // this is just like the Valve Weapon List message
     BotClient_Valve_WeaponList(p, bot_index);
 }
 
-void BotClient_FLF_WeaponList(void *p, int bot_index) {
+void BotClient_FLF_WeaponList(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_WeaponList()\n");
     // this is just like the Valve Weapon List message
     BotClient_Valve_WeaponList(p, bot_index);
@@ -173,7 +173,7 @@ void BotClient_FLF_WeaponList(void *p, int bot_index) {
 
 // This message is sent when a weapon is selected (either by the bot chosing
 // a weapon or by the server auto assigning the bot a weapon).
-void BotClient_Valve_CurrentWeapon(void *p, int bot_index) {
+void BotClient_Valve_CurrentWeapon(void *p, const int bot_index) {
     static int state = 0;        // current state machine state
     static int iState;
     static int iId;
@@ -210,26 +210,26 @@ void BotClient_Valve_CurrentWeapon(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_CurrentWeapon(void *p, int bot_index) {
+void BotClient_CS_CurrentWeapon(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_CurrentWeapon()\n");
     // this is just like the Valve Current Weapon message
     BotClient_Valve_CurrentWeapon(p, bot_index);
 }
 
-void BotClient_Gearbox_CurrentWeapon(void *p, int bot_index) {
+void BotClient_Gearbox_CurrentWeapon(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_CurrentWeapon()\n");
     // this is just like the Valve Current Weapon message
     BotClient_Valve_CurrentWeapon(p, bot_index);
 }
 
-void BotClient_FLF_CurrentWeapon(void *p, int bot_index) {
+void BotClient_FLF_CurrentWeapon(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_CurrentWeapon()\n");
     // this is just like the Valve Current Weapon message
     BotClient_Valve_CurrentWeapon(p, bot_index);
 }
 
 // This message is sent whenever ammo ammounts are adjusted (up or down).
-void BotClient_Valve_AmmoX(void *p, int bot_index) {
+void BotClient_Valve_AmmoX(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_AmmoX()\n");
     static int state = 0;        // current state machine state
     static int index;
@@ -257,19 +257,19 @@ void BotClient_Valve_AmmoX(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_AmmoX(void *p, int bot_index) {
+void BotClient_CS_AmmoX(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_AmmoX()\n");
     // this is just like the Valve AmmoX message
     BotClient_Valve_AmmoX(p, bot_index);
 }
 
-void BotClient_Gearbox_AmmoX(void *p, int bot_index) {
+void BotClient_Gearbox_AmmoX(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_AmmoX()\n");
     // this is just like the Valve AmmoX message
     BotClient_Valve_AmmoX(p, bot_index);
 }
 
-void BotClient_FLF_AmmoX(void *p, int bot_index) {
+void BotClient_FLF_AmmoX(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_AmmoX()\n");
     // this is just like the Valve AmmoX message
     BotClient_Valve_AmmoX(p, bot_index);
@@ -279,7 +279,7 @@ void BotClient_FLF_AmmoX(void *p, int bot_index) {
 // also sent so this message is probably not really necessary except it
 // allows the HUD to draw pictures of ammo that have been picked up.  The
 // bots don't really need pictures since they don't have any eyes anyway.
-void BotClient_Valve_AmmoPickup(void *p, int bot_index) {
+void BotClient_Valve_AmmoPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_AmmoPickup()\n");
     static int state = 0;        // current state machine state
     static int index;
@@ -305,45 +305,45 @@ void BotClient_Valve_AmmoPickup(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_AmmoPickup(void *p, int bot_index) {
+void BotClient_CS_AmmoPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_AmmoPickup()\n");
     // this is just like the Valve Ammo Pickup message
     BotClient_Valve_AmmoPickup(p, bot_index);
 }
 
-void BotClient_Gearbox_AmmoPickup(void *p, int bot_index) {
+void BotClient_Gearbox_AmmoPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_AmmoPickup()\n");
     // this is just like the Valve Ammo Pickup message
     BotClient_Valve_AmmoPickup(p, bot_index);
 }
 
-void BotClient_FLF_AmmoPickup(void *p, int bot_index) {
+void BotClient_FLF_AmmoPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_AmmoPickup()\n");
     // this is just like the Valve Ammo Pickup message
     BotClient_Valve_AmmoPickup(p, bot_index);
 }
 
 // This message gets sent when the bot picks up a weapon.
-void BotClient_Valve_WeaponPickup(void *p, int bot_index) {
+void BotClient_Valve_WeaponPickup(void *p, const int bot_index) {
 	const int index = *static_cast<int*>(p);
 
     // set this weapon bit to indicate that we are carrying this weapon
     bots[bot_index].bot_weapons |= (1 << index);
 }
 
-void BotClient_CS_WeaponPickup(void *p, int bot_index) {
+void BotClient_CS_WeaponPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_WeaponPickup()\n");
     // this is just like the Valve Weapon Pickup message
     BotClient_Valve_WeaponPickup(p, bot_index);
 }
 
-void BotClient_Gearbox_WeaponPickup(void *p, int bot_index) {
+void BotClient_Gearbox_WeaponPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_WeaponPickup()\n");
     // this is just like the Valve Weapon Pickup message
     BotClient_Valve_WeaponPickup(p, bot_index);
 }
 
-void BotClient_FLF_WeaponPickup(void *p, int bot_index) {
+void BotClient_FLF_WeaponPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_WeaponPickup()\n");
     // this is just like the Valve Weapon Pickup message
     BotClient_Valve_WeaponPickup(p, bot_index);
@@ -355,74 +355,74 @@ void BotClient_Valve_ItemPickup(void *p, int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_ItemPickup()\n");
 }
 
-void BotClient_CS_ItemPickup(void *p, int bot_index) {
+void BotClient_CS_ItemPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_ItemPickup()\n");
     // this is just like the Valve Item Pickup message
     BotClient_Valve_ItemPickup(p, bot_index);
 }
 
-void BotClient_Gearbox_ItemPickup(void *p, int bot_index) {
+void BotClient_Gearbox_ItemPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_ItemPickup()\n");
     // this is just like the Valve Item Pickup message
     BotClient_Valve_ItemPickup(p, bot_index);
 }
 
-void BotClient_FLF_ItemPickup(void *p, int bot_index) {
+void BotClient_FLF_ItemPickup(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_ItemPickup()\n");
     // this is just like the Valve Item Pickup message
     BotClient_Valve_ItemPickup(p, bot_index);
 }
 
 // This message gets sent when the bots health changes.
-void BotClient_Valve_Health(void *p, int bot_index) {
+void BotClient_Valve_Health(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_Health()\n");
     bots[bot_index].bot_health = *static_cast<int*>(p);     // health ammount
 }
 
-void BotClient_CS_Health(void *p, int bot_index) {
+void BotClient_CS_Health(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_Health()\n");
     // this is just like the Valve Health message
     BotClient_Valve_Health(p, bot_index);
 }
 
-void BotClient_Gearbox_Health(void *p, int bot_index) {
+void BotClient_Gearbox_Health(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_Health()\n");
     // this is just like the Valve Health message
     BotClient_Valve_Health(p, bot_index);
 }
 
-void BotClient_FLF_Health(void *p, int bot_index) {
+void BotClient_FLF_Health(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_Health()\n");
     // this is just like the Valve Health message
     BotClient_Valve_Health(p, bot_index);
 }
 
 // This message gets sent when the bots armor changes.
-void BotClient_Valve_Battery(void *p, int bot_index) {
+void BotClient_Valve_Battery(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_Battery()\n");
     bots[bot_index].bot_armor = *static_cast<int*>(p);      // armor ammount
 }
 
-void BotClient_CS_Battery(void *p, int bot_index) {
+void BotClient_CS_Battery(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_Battery()\n");
     // this is just like the Valve Battery message
     BotClient_Valve_Battery(p, bot_index);
 }
 
-void BotClient_Gearbox_Battery(void *p, int bot_index) {
+void BotClient_Gearbox_Battery(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_Battery()\n");
     // this is just like the Valve Battery message
     BotClient_Valve_Battery(p, bot_index);
 }
 
-void BotClient_FLF_Battery(void *p, int bot_index) {
+void BotClient_FLF_Battery(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_Battery()\n");
     // this is just like the Valve Battery message
     BotClient_Valve_Battery(p, bot_index);
 }
 
 // This message gets sent when the bots are getting damaged.
-void BotClient_Valve_Damage(void *p, int bot_index) {
+void BotClient_Valve_Damage(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_Damage()\n");
     static int state = 0;        // current state machine state
     static int damage_armor;
@@ -528,7 +528,7 @@ void BotClient_Valve_Damage(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_Damage(void *p, int bot_index) {
+void BotClient_CS_Damage(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_Damage()\n");
     // this is just like the Valve Battery message
     BotClient_Valve_Damage(p, bot_index);
@@ -548,7 +548,7 @@ void BotClient_FLF_Damage(void *p, int bot_index) {
 }*/
 
 
-void BotClient_CS_SayText(void *p, int bot_index) {
+void BotClient_CS_SayText(void *p, const int bot_index) {
     static unsigned char ucEntIndex;
 
     /**
@@ -651,7 +651,7 @@ void BotClient_CS_SayText(void *p, int bot_index) {
 // Converted to use switches.
 
 // This message gets sent when the bot enters a buyzone
-void BotClient_CS_StatusIcon(void *p, int bot_index) {
+void BotClient_CS_StatusIcon(void *p, const int bot_index) {
     /*
        FROM SDK 2.3
        // Message handler for StatusIcon message
@@ -741,7 +741,7 @@ void BotClient_CS_StatusIcon(void *p, int bot_index) {
 }
 
 // This message gets sent when the bots money ammount changes (for CS)
-void BotClient_CS_Money(void *p, int bot_index) {
+void BotClient_CS_Money(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_Money()\n");
     static int state = 0;        // current state machine state
 
@@ -789,25 +789,25 @@ void BotClient_Valve_DeathMsg(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_DeathMsg(void *p, int bot_index) {
+void BotClient_CS_DeathMsg(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_DeathMsg()\n");
     // this is just like the Valve DeathMsg message
     BotClient_Valve_DeathMsg(p, bot_index);
 }
 
-void BotClient_Gearbox_DeathMsg(void *p, int bot_index) {
+void BotClient_Gearbox_DeathMsg(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Gearbox_DeathMsg()\n");
     // this is just like the Valve DeathMsg message
     BotClient_Valve_DeathMsg(p, bot_index);
 }
 
-void BotClient_FLF_DeathMsg(void *p, int bot_index) {
+void BotClient_FLF_DeathMsg(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_FLF_DeathMsg()\n");
     // this is just like the Valve DeathMsg message
     BotClient_Valve_DeathMsg(p, bot_index);
 }
 
-void BotClient_Valve_ScreenFade(void *p, int bot_index) {
+void BotClient_Valve_ScreenFade(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_Valve_ScreenFade()\n");
     static int state = 0;        // current state machine state
     static int duration;
@@ -851,7 +851,7 @@ void BotClient_Valve_ScreenFade(void *p, int bot_index) {
     }
 }
 
-void BotClient_CS_ScreenFade(void *p, int bot_index) {
+void BotClient_CS_ScreenFade(void *p, const int bot_index) {
     //DebugOut("bot_client: BotClient_CS_ScreenFade()\n");
     // this is just like the Valve ScreenFade message
     BotClient_Valve_ScreenFade(p, bot_index);

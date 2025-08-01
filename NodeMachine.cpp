@@ -8,7 +8,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -20,9 +20,9 @@
   *
   * Pierre Marie Baty
   * Count-Floyd
-  *  
+  *
   * !! BOTS-UNITED FOREVER !!
-  *  
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -57,9 +57,9 @@
 
 tNodestar astar_list[MAX_NODES];
 
-const Vector &INVALID_VECTOR = Vector(9999, 9999, 9999);
+const Vector& INVALID_VECTOR = Vector(9999, 9999, 9999);
 
-extern edict_t *pHostEdict;
+extern edict_t* pHostEdict;
 extern cGame Game;
 extern cBot bots[32];
 extern int draw_nodepath;
@@ -67,7 +67,7 @@ extern int draw_nodepath;
 //---------------------------------------------------------
 //CODE: CHEESEMONSTER
 
-int cNodeMachine::GetVisibilityFromTo(int iFrom, int iTo) const {
+int cNodeMachine::GetVisibilityFromTo(const int iFrom, const int iTo) const {
     if (iFrom < 0 || iFrom >= MAX_NODES || iTo < 0 || iTo >= MAX_NODES) {
         rblog("ERROR: Index out of bounds in GetVisibilityFromTo! Returning VIS_BLOCKED\n");
         return VIS_BLOCKED;
@@ -78,33 +78,33 @@ int cNodeMachine::GetVisibilityFromTo(int iFrom, int iTo) const {
     }
 
     // was int
-	
-	// work out the position
+
+    // work out the position
     const long iPosition = iFrom * MAX_NODES + iTo;
     const long iByte = iPosition / 8;
     const unsigned int iBit = iPosition % 8;
 
-	// Optional assertion
+    // Optional assertion
     assert(iByte < g_iMaxVisibilityByte);
     const unsigned char* ToReturn = cVisTable + iByte;
 
     return (*ToReturn & (1 << iBit)) ? VIS_VISIBLE : VIS_BLOCKED;
 }
 
-void cNodeMachine::SetVisibilityFromTo(int iFrom, int iTo, bool bVisible) {
+void cNodeMachine::SetVisibilityFromTo(const int iFrom, const int iTo, const bool bVisible) {
     if (iFrom < 0 || iFrom >= MAX_NODES || iTo < 0 || iTo >= MAX_NODES) {
         rblog("ERROR: Index out of bounds in SetVisibilityFromTo!\n");
         return;
     }
 
-	iVisChecked[iFrom] = 1;
+    iVisChecked[iFrom] = 1;
 
-	// work out the position
+    // work out the position
     const long iPosition = iFrom * MAX_NODES + iTo;
     const long iByte = iPosition / 8;
     const unsigned int iBit = iPosition % 8;
 
-	// Optional assertion
+    // Optional assertion
     assert(iByte < g_iMaxVisibilityByte);
     unsigned char* ToChange = cVisTable + iByte;
     if (bVisible) {
@@ -115,7 +115,7 @@ void cNodeMachine::SetVisibilityFromTo(int iFrom, int iTo, bool bVisible) {
     }
 }
 
-void cNodeMachine::ClearVisibilityTable() const
+void cNodeMachine::ClearVisibilityTable()
 {
     if (cVisTable) {
         std::memset(cVisTable, 0, g_iMaxVisibilityByte);
@@ -205,7 +205,7 @@ void cNodeMachine::initGoals() {
     }
 }
 
-void cNodeMachine::initGoal(int g) {
+void cNodeMachine::initGoal(const int g) {
     Goals[g].iNode = -1;
     Goals[g].pGoalEdict = nullptr;
     Goals[g].iType = GOAL_NONE;
@@ -240,7 +240,6 @@ int cNodeMachine::GetTroubleIndexForConnection(int iFrom, int iTo) const
         }
     }
 
-//    rblog("GetTroubleIndexForConnection | found no index matching from/to. Returning -1\n");
     return -1;
 }
 
@@ -251,7 +250,7 @@ int cNodeMachine::GetTroubleIndexForConnection(int iFrom, int iTo) const
  * @param iTo
  * @return index of newly created index
  */
-int cNodeMachine::AddTroubledConnection(int iFrom, int iTo)
+int cNodeMachine::AddTroubledConnection(const int iFrom, const int iTo)
 {
 	const int existingIndex = GetTroubleIndexForConnection(iFrom, iTo);
     if (existingIndex > -1)
@@ -277,7 +276,7 @@ int cNodeMachine::AddTroubledConnection(int iFrom, int iTo)
     return iNew;
 }
 
-bool cNodeMachine::hasAttemptedConnectionTooManyTimes(int index) const
+bool cNodeMachine::hasAttemptedConnectionTooManyTimes(const int index) const
 {
 	if (index < 0 || index >= MAX_TROUBLE) { // Use MAX_TROUBLE for bounds checking [APG]RoboCop[CL]
         rblog("(trouble) hasAttemptedConnectionTooManyTimes | invalid index for hasAttemptedConnectionTooManyTimes()\n");
@@ -306,7 +305,7 @@ bool cNodeMachine::hasAttemptedConnectionTooManyTimes(int index) const
  * @param iTo
  * @return
  */
-bool cNodeMachine::IncreaseAttemptsForTroubledConnectionOrRemoveIfExceeded(int iFrom, int iTo)
+bool cNodeMachine::IncreaseAttemptsForTroubledConnectionOrRemoveIfExceeded(const int iFrom, const int iTo)
 {
 	const int index = AddTroubledConnection(iFrom, iTo);
     IncreaseAttemptsForTroubledConnection(index);
@@ -326,7 +325,7 @@ bool cNodeMachine::IncreaseAttemptsForTroubledConnectionOrRemoveIfExceeded(int i
 	return true;
 }
 
-void cNodeMachine::IncreaseAttemptsForTroubledConnection(int index)
+void cNodeMachine::IncreaseAttemptsForTroubledConnection(const int index)
 {
     if (index < 0 || index >= MAX_TROUBLE) return;
 
@@ -342,7 +341,7 @@ void cNodeMachine::IncreaseAttemptsForTroubledConnection(int index)
     rblog(msg);
 }
 
-bool cNodeMachine::ClearTroubledConnection(int iFrom, int iTo)
+bool cNodeMachine::ClearTroubledConnection(const int iFrom, const int iTo)
 {
     char msg[255];
     snprintf(msg, sizeof(msg), "(trouble) NodeMachine::ClearTroubledConnection | %d -> %d - START\n", iFrom, iTo);
@@ -367,7 +366,7 @@ bool cNodeMachine::ClearTroubledConnection(int iFrom, int iTo)
     return true;
 }
 
-void cNodeMachine::path_clear(int botIndex)
+void cNodeMachine::path_clear(const int botIndex)
 {
     for (int nodeIndex = 0; nodeIndex < MAX_NODES; nodeIndex++) {
         iPath[botIndex][nodeIndex] = -1;
@@ -375,7 +374,7 @@ void cNodeMachine::path_clear(int botIndex)
 }
 
 // Return
-Vector cNodeMachine::node_vector(int iNode) const
+Vector cNodeMachine::node_vector(const int iNode) const
 {
     if (iNode > -1) {
         return Nodes[iNode].origin;
@@ -399,7 +398,7 @@ void cNodeMachine::VectorToMeredian(const Vector& vOrigin, int *iX, int *iY)
     *iY = static_cast<int>(iCoordY);
 }
 
-void cNodeMachine::AddToMeredian(int iX, int iY, int iNode)
+void cNodeMachine::AddToMeredian(const int iX, const int iY, const int iNode)
 {
     int index = -1;
     for (int i = 0; i < MAX_NODES_IN_MEREDIANS; i++)
@@ -496,7 +495,7 @@ int cNodeMachine::node_dangerous(int iTeam, const Vector& vOrigin, float fMaxDis
  * @param pEdict
  * @return
  */
-int cNodeMachine::getClosestNode(const Vector& vOrigin, float fDist, edict_t *pEdict) const
+int cNodeMachine::getClosestNode(const Vector& vOrigin, const float fDist, edict_t *pEdict) const
 {
     // REDO: Need faster method to find a node
     // TOADD: For secure results all nodes should be checked to figure out the real
@@ -562,7 +561,7 @@ int cNodeMachine::getClosestNode(const Vector& vOrigin, float fDist, edict_t *pE
  * @param pEdict
  * @return
  */
-int cNodeMachine::getFurthestNode(const Vector& vOrigin, float fDist, const edict_t *pEdict) const
+int cNodeMachine::getFurthestNode(const Vector& vOrigin, const float fDist, const edict_t *pEdict) const
 {
     // Use Meredians to search for nodes
     // TODO: we should take care in the situation where we're at the 'edge' of such a meridian (subspace). So we should
@@ -619,7 +618,7 @@ int cNodeMachine::getFurthestNode(const Vector& vOrigin, float fDist, const edic
 }
 
 // Adds a neighbour connection to a node ID
-bool cNodeMachine::add_neighbour_node(int iNode, int iToNode) {
+bool cNodeMachine::add_neighbour_node(const int iNode, const int iToNode) {
     if (iNode < 0)
         return false;
 
@@ -640,7 +639,7 @@ bool cNodeMachine::add_neighbour_node(int iNode, int iToNode) {
  * @param iTo
  * @return
  */
-bool cNodeMachine::removeConnection(int iFrom, int iTo) {
+bool cNodeMachine::removeConnection(const int iFrom, const int iTo) {
     if (iFrom < 0 || iTo < 0) {
         return false;
     }
@@ -683,7 +682,7 @@ bool cNodeMachine::removeConnection(int iFrom, int iTo) {
 }
 
 // Removes ALL neighbour connections on iNode
-bool cNodeMachine::remove_neighbour_nodes(int iNode) {
+bool cNodeMachine::remove_neighbour_nodes(const int iNode) {
     if (iNode < 0)
         return false;
 
@@ -704,7 +703,7 @@ int cNodeMachine::freeNeighbourNodeIndex(const tNode *Node) {
     return -1;
 }
 
-int cNodeMachine::is_neighbour_node(const tNode& node, int iNode)
+int cNodeMachine::is_neighbour_node(const tNode& node, const int iNode)
 {
     for (int i = 0; i < MAX_NEIGHBOURS; i++) {
 		if (node.iNeighbour[i] == iNode) {
@@ -716,7 +715,7 @@ int cNodeMachine::is_neighbour_node(const tNode& node, int iNode)
 }
 
 // Return the node id from bot path on Index NR
-int cNodeMachine::getNodeIndexFromBotForPath(int botIndex, int pathNodeIndex) const
+int cNodeMachine::getNodeIndexFromBotForPath(const int botIndex, const int pathNodeIndex) const
 {
     if (botIndex > -1 && botIndex < MAX_BOTS &&
         pathNodeIndex > -1 && pathNodeIndex < MAX_PATH_NODES) {
@@ -905,7 +904,7 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
 }
 
 // Adding a node: another way...
-int cNodeMachine::add2(const Vector& vOrigin, int iType, edict_t *pEntity) {
+int cNodeMachine::add2(const Vector& vOrigin, const int iType, edict_t *pEntity) {
     // Do not add a node when there is already one close
     if (getClosestNode(vOrigin, NODE_ZONE, pEntity) > -1)
         return -1;
@@ -1284,7 +1283,7 @@ void cNodeMachine::init_round() {
  */
 void cNodeMachine::addNodesForPlayers() {
     for (int index = 1; index <= gpGlobals->maxClients; index++) {
-        edict_t *pPlayer = INDEXENT(index);
+        edict_t* pPlayer = INDEXENT(index);
 
         // skip invalid (dead, not playing) players
         if (pPlayer && !pPlayer->free) {
@@ -1485,7 +1484,7 @@ void cNodeMachine::experience_save() {
     FILE* rbl = std::fopen(filename, "wb");
 
     if (rbl != nullptr) {
-	    constexpr int iVersion = FILE_EXP_VER2;
+        constexpr int iVersion = FILE_EXP_VER2;
         std::fwrite(&iVersion, sizeof(int), 1, rbl);
 
         struct Node {
@@ -1563,8 +1562,8 @@ void cNodeMachine::experience_load() {
     FILE* rbl = std::fopen(filename, "rb");
 
     if (rbl != nullptr) {
-	    int i;
-	    int iVersion = FILE_EXP_VER1;
+        int i;
+        int iVersion = FILE_EXP_VER1;
         std::fread(&iVersion, sizeof(int), 1, rbl);
 
         struct Node {
@@ -1852,7 +1851,7 @@ void cNodeMachine::path_draw(edict_t* pEntity) const
 }
 
 // Spread contact areas
-void cNodeMachine::contact(int iNode, int iTeam) {
+void cNodeMachine::contact(const int iNode, const int iTeam) {
     if (iNode < 0 || iNode >= MAX_NODES)
         return;
 
@@ -1890,7 +1889,7 @@ void cNodeMachine::contact(int iNode, int iTeam) {
 }
 
 // Spread danger around
-void cNodeMachine::danger(int iNode, int iTeam) {
+void cNodeMachine::danger(const int iNode, const int iTeam) {
     if (iNode < 0 || iNode >= MAX_NODES)
         return;
 
@@ -1929,7 +1928,7 @@ void cNodeMachine::danger(int iNode, int iTeam) {
 }
 
 // Adds a new goal to the array
-void cNodeMachine::addGoal(edict_t *pEdict, int goalType, const Vector& vVec) {
+void cNodeMachine::addGoal(edict_t *pEdict, const int goalType, const Vector& vVec) {
     //
     // 14/06/04
     // Be carefull with adding SERVER_PRINT messages here
@@ -1984,7 +1983,7 @@ void cNodeMachine::addGoal(edict_t *pEdict, int goalType, const Vector& vVec) {
     rblog(msg);
 }
 
-tGoal *cNodeMachine::getGoal(int index) {
+tGoal *cNodeMachine::getGoal(const int index) {
     if (index < 0 || index >= MAX_GOALS) {
         rblog("ERROR: Asking to retrieve goal with invalid index! Returning goal NULL\n");
         return nullptr;
@@ -2041,7 +2040,7 @@ void cNodeMachine::resetCheckedValuesForGoals() {
 }
 
 // returns goal type from node, -1 for unknown
-int cNodeMachine::getGoalIndexFromNode(int iNode) const
+int cNodeMachine::getGoalIndexFromNode(const int iNode) const
 {
     for (const tGoal& Goal : Goals)
 	    if (Goal.iNode == iNode)
@@ -2172,7 +2171,7 @@ void cNodeMachine::setUpInitialGoals() {
 }
 
 // Find a goal, and return the node close to it
-tGoal* cNodeMachine::getRandomGoalByType(int goalType) {
+tGoal* cNodeMachine::getRandomGoalByType(const int goalType) {
     if (goalType == GOAL_NONE)
         return nullptr;
 	
@@ -2265,7 +2264,7 @@ void cNodeMachine::scale_danger() {
 }
 
 // Pathfinder
-bool cNodeMachine::createPath(int nodeStartIndex, int nodeTargetIndex, int botIndex, cBot *pBot, int iFlags) {
+bool cNodeMachine::createPath(const int nodeStartIndex, const int nodeTargetIndex, const int botIndex, cBot *pBot, int iFlags) {
     // Will create a path from nodeStartIndex to nodeTargetIndex, and store it into index number iPathId
 
     if (pBot) {
@@ -2468,7 +2467,7 @@ bool cNodeMachine::createPath(int nodeStartIndex, int nodeTargetIndex, int botIn
  * @param parent
  * @param cost
  */
-void cNodeMachine::closeNode(int nodeIndex, int parent, float cost) {
+void cNodeMachine::closeNode(const int nodeIndex, const int parent, const float cost) {
     astar_list[nodeIndex].state = CLOSED;
     astar_list[nodeIndex].parent = parent;
     astar_list[nodeIndex].cost = cost;
@@ -2484,7 +2483,7 @@ void cNodeMachine::closeNode(int nodeIndex, int parent, float cost) {
  * @param parent
  * @param cost
  */
-void cNodeMachine::openNeighbourNodes(int startNodeIndex, int nodeToOpenNeighboursFrom, int destinationNodeIndex, int botTeam) const
+void cNodeMachine::openNeighbourNodes(const int startNodeIndex, const int nodeToOpenNeighboursFrom, const int destinationNodeIndex, const int botTeam) const
 {
 	const tNode &startNode = Nodes[startNodeIndex]; // very start of path
 	const tNode &destNode = Nodes[destinationNodeIndex]; // destination for path
@@ -2545,18 +2544,18 @@ void cNodeMachine::makeAllWaypointsAvailable()
 //    rblog("All nodes set to AVAILABLE\n");
 }
 
-bool cNodeMachine::isValidNodeIndex(int index) //TODO: Experimental [APG]RoboCop[CL]
+bool cNodeMachine::isValidNodeIndex(const int index) //TODO: Experimental [APG]RoboCop[CL]
 {
 	return index >= 0 && index < MAX_NODES;
 }
 
-bool cNodeMachine::isInvalidNode(int index) //TODO: Experimental [APG]RoboCop[CL]
+bool cNodeMachine::isInvalidNode(const int index) //TODO: Experimental [APG]RoboCop[CL]
 {
 	return !isValidNodeIndex(index);
 }
 
 //TODO: Implement this function - Experimental [APG]RoboCop[CL]
-void cNodeMachine::buildPath(int nodeStartIndex, int nodeTargetIndex, int botIndex, cBot* pBot)
+void cNodeMachine::buildPath(const int nodeStartIndex, const int nodeTargetIndex, const int botIndex, cBot* pBot)
 {
     if (!isValidNodeIndex(nodeStartIndex) || !isValidNodeIndex(nodeTargetIndex)) {
         rblog("Invalid node index provided to buildPath");
@@ -2612,7 +2611,7 @@ void cNodeMachine::buildPath(int nodeStartIndex, int nodeTargetIndex, int botInd
 }
 
 // Find a node which has almost no danger!
-int cNodeMachine::node_camp(const Vector& vOrigin, int iTeam) const
+int cNodeMachine::node_camp(const Vector& vOrigin, const int iTeam) const
 {
     // Use Meredians to search for nodes
     int iX, iY;
@@ -2664,7 +2663,7 @@ int cNodeMachine::node_camp(const Vector& vOrigin, int iTeam) const
 }
 
 // Check if iFrom is visible from other nodes (and opposite)
-void cNodeMachine::vis_calculate(int iFrom) {
+void cNodeMachine::vis_calculate(const int iFrom) {
     // Check around your area to see what is visible
 
     for (int i = 0; i < MAX_NODES; i++)
@@ -2692,8 +2691,7 @@ void cNodeMachine::vis_calculate(int iFrom) {
 }
 
 // Find a node to look at when camping
-int cNodeMachine::node_look_camp(const Vector& vOrigin, int iTeam,
-                                 edict_t *pEdict) {
+int cNodeMachine::node_look_camp(const Vector& vOrigin, const int iTeam, edict_t *pEdict) {
 
     rblog("node_look_camp - start\n");
     float fDanger = -0.1f;
@@ -2755,7 +2753,7 @@ int cNodeMachine::node_look_camp(const Vector& vOrigin, int iTeam,
  * @param pBot
  * @param distanceMoved
  */
-void cNodeMachine::path_walk(cBot *pBot, float distanceMoved) {
+void cNodeMachine::path_walk(cBot *pBot, const float distanceMoved) {
     pBot->rprint("cNodeMachine::path_walk", "START");
     const int BotIndex = pBot->iBotIndex;
 
@@ -2943,7 +2941,8 @@ void cNodeMachine::path_walk(cBot *pBot, float distanceMoved) {
         }
     }
 
-    bool shouldDrawWaypointBeamsFromBot = false;
+	// No longer required? [APG]RoboCop[CL]
+    /*bool shouldDrawWaypointBeamsFromBot = false;
 
     if (shouldDrawWaypointBeamsFromBot) {
 	    const tNode *nodeHeadingFor = this->getNode(currentNodeToHeadFor);
@@ -2982,7 +2981,7 @@ void cNodeMachine::path_walk(cBot *pBot, float distanceMoved) {
                 }
             }
         }
-    } // Draw waypoint beams
+    }*/ // Draw waypoint beams
 
     // reached node
     if (bNearNode) {
@@ -3095,7 +3094,7 @@ void cNodeMachine::path_walk(cBot *pBot, float distanceMoved) {
     pBot->rprint_trace("cNodeMachine::path_walk", "Finished - really the end of the method");
 }
 
-void cNodeMachine::ExecuteIsStuckLogic(cBot *pBot, int currentNodeToHeadFor, const Vector &vector) {
+void cNodeMachine::ExecuteIsStuckLogic(cBot *pBot, const int currentNodeToHeadFor, const Vector& vector) {
     pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "START");
     pBot->fNotStuckTime = gpGlobals->time + 0.25f; // give some time to unstuck
 
@@ -3399,7 +3398,7 @@ bool cNodeMachine::isEntityWorldspawn(const edict_t *pEntityHit)
 }
 
 // Think about path creation here
-void cNodeMachine::path_think(cBot *pBot, float distanceMoved) {
+void cNodeMachine::path_think(cBot *pBot, const float distanceMoved) {
     pBot->rprint_trace("cNodeMachine::path_think", "START");
     if (pBot->shouldBeWandering()) {
         int currentNode = -1;
@@ -3883,7 +3882,7 @@ void cNodeMachine::path_think(cBot *pBot, float distanceMoved) {
     }
 }
 
-tNode *cNodeMachine::getNode(int index) {
+tNode *cNodeMachine::getNode(const int index) {
     // safe-guard
     if (index < 0 || index >= MAX_NODES) return nullptr;
     return &Nodes[index];
@@ -3924,7 +3923,7 @@ std::string cNodeMachine::getGoalTypeAsText(const tGoal& goal)
 }
 
 // Find cover
-int cNodeMachine::node_cover(int iFrom, int iTo, edict_t *pEdict) {
+int cNodeMachine::node_cover(const int iFrom, const int iTo, edict_t *pEdict) {
     if (iFrom == iTo)
         return iFrom;             // cover at current position
 
@@ -3992,8 +3991,7 @@ int cNodeMachine::node_cover(int iFrom, int iTo, edict_t *pEdict) {
 
 }
 
-int cNodeMachine::node_look_at_hear(int iFrom, int iOrigin,
-                                    edict_t *pEdict) {
+int cNodeMachine::node_look_at_hear(const int iFrom, const int iOrigin, edict_t *pEdict) {
     if (iFrom == iOrigin)
         return iFrom;             // impossible
 
@@ -4128,7 +4126,7 @@ void cNodeMachine::dump_goals() const
 }
 
 // EVY: another dump
-void cNodeMachine::dump_path(int iBot, int CurrentPath) const
+void cNodeMachine::dump_path(const int iBot, const int CurrentPath) const
 {
     char buffer[80];
     int i, CurrentNode;
@@ -4192,7 +4190,7 @@ static void InitDebugBitmap() {
 }
 
 // Draw a small cross
-static void DrawPoint(const Vector& v, unsigned char color) {
+static void DrawPoint(const Vector& v, const unsigned char color) {
 	if (bmp_buffer == nullptr) {
         std::fprintf(stderr,
                 "DrawLineInDebugBitmap(): function called with NULL BMP buffer!\n");
@@ -4223,7 +4221,7 @@ static void DrawPoint(const Vector& v, unsigned char color) {
 
 // From PMB and Botman's code
 
-static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, unsigned char color) {
+static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, const unsigned char color) {
     // blind copy of botman's Bresenham(). This function prints a vector line into a bitmap dot
     // matrix. The dot matrix (bmp_buffer) is a global array. The size of the bitmap is always
     // assumed to be DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT pixels (currently 2000 * 2000 to fit with
@@ -4571,7 +4569,7 @@ void cNodeMachine::MarkMeredians() {
 
 // Put a cross on all nodes in RBN + draw lines to all neighbours
 
-void cNodeMachine::PlotNodes(unsigned char NeighbourColor, unsigned char NodeColor) const
+void cNodeMachine::PlotNodes(const unsigned char NeighbourColor, const unsigned char NodeColor) const
 {
     int i;
 
@@ -4593,7 +4591,7 @@ void cNodeMachine::PlotNodes(unsigned char NeighbourColor, unsigned char NodeCol
 
 // Put a small cross at all goal points
 
-void cNodeMachine::PlotGoals(unsigned char color) const
+void cNodeMachine::PlotGoals(const unsigned char color) const
 {
 	for (int i = 0; i < MAX_GOALS && Goals[i].iNode >= 0; i++) {
 		const Vector v = Nodes[Goals[i].iNode].origin;
@@ -4602,7 +4600,7 @@ void cNodeMachine::PlotGoals(unsigned char color) const
 }
 
 // Plot the computed paths for all life bots
-void cNodeMachine::PlotPaths(unsigned char Tcolor, unsigned char CTcolor) const
+void cNodeMachine::PlotPaths(const unsigned char Tcolor, const unsigned char CTcolor) const
 {
 	for (int iBot = 0; iBot < 32; iBot++) {
         if (bots[iBot].bIsUsed) {

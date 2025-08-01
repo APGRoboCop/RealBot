@@ -8,7 +8,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -20,9 +20,9 @@
   *
   * Pierre Marie Baty
   * Count-Floyd
-  *  
+  *
   * !! BOTS-UNITED FOREVER !!
-  *  
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -45,9 +45,21 @@
 extern int mod_id;
 extern edict_t* pHostEdict;
 
+// Obstacle Avoidance
 constexpr float TURN_ANGLE = 75.0f; // Degrees to turn when avoiding obstacles
 constexpr float MOVE_DISTANCE = 24.0f; // Distance to move forward
 constexpr std::uint8_t SCAN_RADIUS = 60; // Radius to scan to prevent blocking with players
+
+// Bot dimensions and movement capabilities
+constexpr float BODY_SIDE_OFFSET = 16.0f; // Offset from center to check for body clearance
+constexpr float FORWARD_CHECK_DISTANCE = 24.0f; // How far forward to check for obstacles
+constexpr float STAND_VIEW_HEIGHT_OFFSET = -36.0f; // Eye level offset from origin when standing
+constexpr float DUCK_VIEW_HEIGHT_OFFSET = -36.0f; // Eye level offset from origin when ducking
+constexpr float DUCK_HEIGHT = 36.0f; // Height of the bot when ducking
+constexpr float HEAD_CLEARANCE_CHECK_HEIGHT = 108.0f; // Height from origin to check for head clearance
+constexpr float JUMP_CLEARANCE_CHECK_DROP = -81.0f; // Distance to trace down for jump clearance
+constexpr float DUCK_CLEARANCE_CHECK_RISE = 72.0f; // Distance to trace up for duck clearance
+constexpr float FEET_OFFSET = -35.0f; // Offset from origin to near the bot's feet
 
 /**
  * Given an angle, makes sure it wraps around properly
@@ -193,7 +205,7 @@ bool BotCanJumpUp(const cBot* pBot) {
     return true;
 }
 
-bool BotCanDuckUnder(const cBot* pBot) {
+bool BotCanDuckUnder(cBot* pBot) {
     // What I do here is trace 3 lines straight out, one unit higher than
     // the ducking height.  I trace once at the center of the body, once
     // at the right side, and once at the left side.  If all three of these
@@ -323,7 +335,7 @@ bool isBotNearby(const cBot* pBot, const float radius) {
     return false;
 }
 
-void adjustBotAngle(const cBot* pBot, const float angle) {
+void adjustBotAngle(cBot* pBot, const float angle) {
     if (!pBot || !pBot->pEdict) {
         return;
     }
@@ -332,7 +344,7 @@ void adjustBotAngle(const cBot* pBot, const float angle) {
     UTIL_MakeVectors(pBot->pEdict->v.v_angle);
 }
 
-void avoidClustering(const cBot* pBot) {
+void avoidClustering(cBot* pBot) {
     if (!pBot) {
         return;
     }
@@ -348,14 +360,10 @@ bool isPathBlocked(const cBot* pBot, const Vector& v_dest) {
     }
 
     TraceResult tr;
-    const Vector v_source = pBot->pEdict->v.origin;
-
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters, pBot->pEdict->v.pContainingEntity, &tr);
-
-	return tr.flFraction < 1.0f;
+    return !traceLine(pBot->pEdict->v.origin, v_dest, pBot->pEdict, tr);
 }
 
-void adjustPathIfBlocked(const cBot* pBot) {
+void adjustPathIfBlocked(cBot* pBot) {
     if (!pBot) {
         return;
     }
@@ -387,7 +395,7 @@ void BotNavigate(const cBot* pBot) {
         return;
     }
 
-    // Avoid clustering
+    // Avoid clustering with other bots
     avoidClustering(pBot);
 
     // Adjust path if blocked

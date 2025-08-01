@@ -8,7 +8,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -20,9 +20,9 @@
   *
   * Pierre Marie Baty
   * Count-Floyd
-  *  
+  *
   * !! BOTS-UNITED FOREVER !!
-  *  
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -131,7 +131,7 @@ void cGame::InitNewRound() {
     // initialize bots for new round
     for (cBot& bot : bots)
     {
-	    if (bot.bIsUsed) {
+        if (bot.bIsUsed) {
             bot.NewRound();
         }
     }
@@ -166,7 +166,7 @@ char *cGame::RandomSentence() {
 void cGame::DetermineMapGoal()
 {
     rblog("DetermineMapGoal called\n");
-    edict_t *pEnt = nullptr;
+    edict_t* pEnt = nullptr;
 
     int hostagesFound = 0;
     while ((pEnt = UTIL_FindEntityByClassname(pEnt, "hostage_entity")) != nullptr) {
@@ -217,7 +217,7 @@ void cGame::resetRoundTime() {
 }
 
 // GAME: Set round time
-void cGame::SetRoundTime(float fTime) {
+void cGame::SetRoundTime(const float fTime) {
     fRoundTime = fTime;
 }
 
@@ -237,7 +237,7 @@ float cGame::getRoundTimeElapsed() const
 }
 
 // GAME: Set new round flag
-void cGame::SetNewRound(bool bState) {
+void cGame::SetNewRound(const bool bState) {
     bNewRound = bState;
 }
 
@@ -249,7 +249,7 @@ bool cGame::NewRound() const
 
 
 // GAME: Set min and max playing rounds
-void cGame::SetPlayingRounds(int iMin, int iMax) {
+void cGame::SetPlayingRounds(const int iMin, const int iMax) {
     if (iMin > -1)
         iMinPlayRounds = iMin;
     if (iMax > -1)
@@ -394,7 +394,7 @@ void cGame::LoadBuyTable() {
 
 // GAME: Update global vars (called by StartFrame)
 void cGame::UpdateGameStatus() {
-	edict_t* pEnt = nullptr;
+    edict_t* pEnt = nullptr;
 
     // ------------------
     // Update: Dropped C4
@@ -429,17 +429,17 @@ void cGame::UpdateGameStatus() {
     // all counter-terrorists should know this, and they should head for the bomb
     if (bPlanted && // found a planted bomb
         bPlanted != bBombPlanted // and previously we didn't know that
-            ) {
-	    for (int i = 1; i <= gpGlobals->maxClients; i++) {
-            edict_t *pPlayer = INDEXENT(i);
-            cBot *bot = UTIL_GetBotPointer(pPlayer);
+        ) {
+        for (int i = 1; i <= gpGlobals->maxClients; i++) {
+            edict_t* pPlayer = INDEXENT(i);
+            cBot* bot = UTIL_GetBotPointer(pPlayer);
 
             // valid bot
             if (bot) {
                 if (bot->isCounterTerrorist()) {
                     bot->forgetPath();
                     bot->rprint("Setting goal for bombspot");
-                    tGoal *bombSpotGoal = NodeMachine.getRandomGoalByType(GOAL_BOMBSPOT);
+                    tGoal* bombSpotGoal = NodeMachine.getRandomGoalByType(GOAL_BOMBSPOT);
                     if (bombSpotGoal) {
                         bot->setGoalNode(bombSpotGoal); // picks a random bomb spot
                     }
@@ -448,12 +448,12 @@ void cGame::UpdateGameStatus() {
         }                   // through all clients
 
         // Now update bBombPlanted
-        bBombPlanted = bPlanted;
+        bBombPlanted = true;
     } // planted, and not planted before
 
     // Every 3 seconds update the goals
     if (gpGlobals->time > fUpdateGoalTimer + 3) {
-	//  rblog("cGame::UpdateGameStatus - updateGoals\n");
+        //  rblog("cGame::UpdateGameStatus - updateGoals\n");
         NodeMachine.updateGoals();
         fUpdateGoalTimer = gpGlobals->time;
     }
@@ -470,7 +470,7 @@ void cGame::UpdateGameStatus() {
  * @param nameArg
  * @return
  */
-int cGame::createBot(edict_t *pPlayer, const char *teamArg, const char *skillArg, const char *modelArg, const char *nameArg) const
+int cGame::createBot(edict_t* pPlayer, const char* teamArg, const char* skillArg, const char* modelArg, const char* nameArg) const
 {
 
     // NAME
@@ -533,7 +533,7 @@ int cGame::createBot(edict_t *pPlayer, const char *teamArg, const char *skillArg
     if (freeBotIndex == MAX_BOTS) { // failure
         return GAME_MSG_FAILURE;
     }
-	
+
     // create the player entity by calling MOD's player function
     // (from LINK_ENTITY_TO_CLASS for player object)
 
@@ -575,7 +575,7 @@ int cGame::createBot(edict_t *pPlayer, const char *teamArg, const char *skillArg
     // initialize all the variables for this bot...
 
     // Retrieve Pointer
-    cBot *pBot = &bots[freeBotIndex];
+    cBot* pBot = &bots[freeBotIndex];
 
     // TODO: Stefan 05/09/2019 - init function? (re-use, so much duplication here)
     // Set variables
@@ -652,7 +652,7 @@ int cGame::createBot(edict_t *pPlayer, const char *teamArg, const char *skillArg
 }                               // CreateBot()
 
 // Debug message (without BOT)
-void REALBOT_PRINT(const char *Function, const char *msg) {
+void REALBOT_PRINT(const char* Function, const char* msg) {
     REALBOT_PRINT(nullptr, Function, msg);
 }
 
@@ -703,14 +703,14 @@ void REALBOT_PRINT(cBot *pBot, const char *Function, const char *msg) {
     const int minutesLeft = static_cast<int>(roundTimeRemaining) / 60;
     const int secondsLeft = static_cast<int>(roundTimeRemaining) % 60;
 
-    snprintf(cMessage, sizeof(cMessage), "[rb] [%s] [%0d:%02d] - [%s|%d] [%s] [%s] : %s\n", mapName, minutesLeft, secondsLeft, name, botIndex, team, Function, msg);
-
     // print in console only when on debug print
     if (Game.bDebug > -2) {
-        if (Game.bDebug == -1) {
-            rblog(cMessage);
-        } else if (Game.bDebug == botIndex /*&& botIndex > -1*/) {
-            rblog(cMessage);
+        if (Game.bDebug == -1 || Game.bDebug == botIndex) {
+            std::ostringstream oss;
+            oss << "[rb] [" << mapName << "] [" << minutesLeft << ":" << std::setw(2) << std::setfill('0') << secondsLeft << "] - ["
+                << name << "|" << botIndex << "] [" << team << "] [" << Function << "] : " << msg << "\n";
+            const std::string cMessage = oss.str();
+            rblog(cMessage.c_str());
         }
     }
 }  // REALBOT_PRINT()

@@ -118,9 +118,9 @@ cBot bots[32];                  // max of 32 bots in a game
 // External added variables
 extern bool end_round;          // End round
 
-#ifndef _WIN32
+/*#ifndef _WIN32
 #define snprintf std::snprintf //-V1059
-#endif
+#endif*/
 
 cBot::cBot() {
 	pBotHostage = nullptr;
@@ -499,7 +499,7 @@ void cBot::PrepareChat(char sentence[128]) {
 /******************************************************************************
  Function purpose: Return reaction time based upon skill
  ******************************************************************************/
-float cBot::ReactionTime(int iSkill) {
+float cBot::ReactionTime(const int iSkill) {
 	const float time = RANDOM_FLOAT(fpMinReactTime, fpMaxReactTime);
 	if (Game.messageVerbosity > 1) {
 		char msg[255];
@@ -521,11 +521,11 @@ int cBot::FindEnemy() {
 	if (fBlindedTime > gpGlobals->time)
 		return -1;
 	float fNearestDistance = 9999;       // Nearest distance
-	edict_t *pNewEnemy = nullptr;   // New enemy found
+	edict_t* pNewEnemy = nullptr;   // New enemy found
 
 	// SEARCH PLAYERS FOR ENEMIES
 	for (int i = 1; i <= gpGlobals->maxClients; i++) {
-		edict_t *pPlayer = INDEXENT(i);
+		edict_t* pPlayer = INDEXENT(i);
 
 		// skip invalid players and skip self (i.e. this bot)
 		if (pPlayer && !pPlayer->free && pPlayer != pEdict) {
@@ -558,10 +558,10 @@ int cBot::FindEnemy() {
 
 				// If the bot carries a sniper, always consider the enemy visible
 				if (CarryWeaponType() != SNIPER) {
-				//	bCanSee = true;
+					//	bCanSee = true;
 				}
 
-                if (fDistance < fNearestDistance && bCanSee) {
+				if (fDistance < fNearestDistance && bCanSee) {
 					fNearestDistance = fDistance;
 					pNewEnemy = pPlayer;
 				}
@@ -581,10 +581,12 @@ int cBot::FindEnemy() {
 		// We have a reaction time to this new enemy
 		rememberEnemyFound();
 		f_shoot_time = gpGlobals->time + ReactionTime(bot_skill);
+
+		const bool hadNoEnemy = pEnemyEdict == nullptr;
 		pEnemyEdict = pNewEnemy; // Update pointer
 
 		// We did not have an enemy before
-		if (pEnemyEdict == nullptr) {
+		if (hadNoEnemy) {
 			rprint_trace("FindEnemy()", "Found new enemy");
 
 			// RADIO: When we found a NEW enemy but NOT via a friend
@@ -595,7 +597,7 @@ int cBot::FindEnemy() {
 			// We found a new enemy
 			return 0;
 		}
-		
+
 		// we found an enemy that is newer/more dangerous then previous
 		rprint_trace("FindEnemy()", "Found 'newer' enemy");
 		return 3;
@@ -820,7 +822,7 @@ void cBot::FightEnemy() {
 	}                            // visible
 }
 
-void cBot::pickWeapon(int weaponId) {
+void cBot::pickWeapon(const int weaponId) {
 	UTIL_SelectItem(pEdict, UTIL_GiveWeaponName(weaponId));
 	f_c4_time = gpGlobals->time - 1;    // reset C4 timer data
 	// give Counter-Strike time to switch weapon (animation, update state, etc)
@@ -842,7 +844,7 @@ bool cBot::ownsFavoriteSecondaryWeapon() const
  * @param weaponId
  * @return
  */
-bool cBot::isOwningWeapon(int weaponId) const
+bool cBot::isOwningWeapon(const int weaponId) const
 {
 	return bot_weapons & 1 << weaponId;
 }
@@ -852,7 +854,7 @@ bool cBot::isOwningWeapon(int weaponId) const
  * @param weaponId
  * @return
  */
-bool cBot::isHoldingWeapon(int weaponId) const
+bool cBot::isHoldingWeapon(const int weaponId) const
 {
 	return current_weapon.iId == weaponId;
 }
@@ -867,7 +869,7 @@ bool cBot::hasFavoriteSecondaryWeaponPreference() const
 	return ipFavoSecWeapon > -1;
 }
 
-bool cBot::canAfford(int price) const //price muddled with weaponId? [APG]RoboCop[CL]
+bool cBot::canAfford(const int price) const //price muddled with weaponId? [APG]RoboCop[CL]
 {
 	return this->bot_money > price;
 }
@@ -1485,7 +1487,7 @@ void cBot::InteractWithPlayers() {
 
 			// We do not forget our enemy, but we will try to get the heck out of here.
 			// TODO TODO TODO: code something here?
-			
+
 		}
 		// Whenever we hold a knife, get our primary weapon
 		if (CarryWeapon(CS_WEAPON_KNIFE)) {
@@ -1567,17 +1569,18 @@ void cBot::InteractWithPlayers() {
 
 		// Does our enemy (when a bot) has focus on us?
 		bool focused;
-		const cBot *playerbot = UTIL_GetBotPointer(pEnemyEdict);
+		const cBot* playerbot = UTIL_GetBotPointer(pEnemyEdict);
 		if (playerbot) {
 			if (playerbot->pEnemyEdict == pEdict)
 				focused = true;
-		} else                      // Its a human
+		}
+		else                      // Its a human
 		{
 
 			// When we are in his 'sight' of 25 degrees , we are pretty
 			// much focussed for a first encounter.
 			if (FUNC_InFieldOfView
-						(pEdict, (pEnemyEdict->v.origin - pEdict->v.origin)) < 25)
+			(pEdict, (pEnemyEdict->v.origin - pEdict->v.origin)) < 25)
 				focused = true;
 		}
 
@@ -1706,7 +1709,7 @@ void cBot::JoinTeam() {
 	}
 }
 
-vec_t cBot::ReturnTurnedAngle(float speed, float current, float ideal) {
+vec_t cBot::ReturnTurnedAngle(float speed, float current, const float ideal) {
 
 	// hope this fix the unnescesary turning of bots.
 	// how? we save the values here, andc alculate the new value.
@@ -1814,7 +1817,7 @@ bool cBot::Defuse() {
 		rprint_trace("Defuse()", "Cannot see planted C4 - bailing");
 		return false;
 	}
-	
+
 	// it can be seen, so it has been discovered
 	if (!Game.isPlantedC4Discovered()) {
 		this->rprint_trace("Defuse()", "C4 is discovered, remembering its coordinates");
@@ -1887,7 +1890,7 @@ bool cBot::Defuse() {
 	return true;
 }
 
-int cBot::keyPressed(int key) const {
+int cBot::keyPressed(const int key) const {
 	return pEdict->v.button & key;
 }
 
@@ -2132,7 +2135,7 @@ void cBot::CheckAround() {
 	const Vector v_forwardleft = v_left + gpGlobals->v_forward * -distance;
 
 	// TRACELINE: forward
-	UTIL_TraceHull(v_source, v_forward, dont_ignore_monsters, point_hull,  pEdict->v.pContainingEntity, &tr);
+	UTIL_TraceHull(v_source, v_forward, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
 	const bool bHitForward = tr.flFraction < 1.0f;
 
 	// TRACELINE: Left
@@ -2150,7 +2153,7 @@ void cBot::CheckAround() {
 	// TRACELINE: Forward right
 	UTIL_TraceHull(v_source, v_forwardright, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
 	const bool bHitForwardRight = tr.flFraction < 1.0f;
-	
+
 	char msg[255];
 	snprintf(msg, sizeof(msg), "HIT results: forward: %d, left: %d, right: %d, forward left: %d, forward right: %d", bHitForward, bHitLeft, bHitRight, bHitForwardLeft, bHitForwardRight);
 	rprint_trace("CheckAround", msg);
@@ -2187,7 +2190,7 @@ void cBot::CheckAround() {
 	// When checking around a bot also handles breakable stuff.
 	// -------------------------------------------------------------
 
-	edict_t *pent = nullptr;
+	edict_t* pent = nullptr;
 	while ((pent = UTIL_FindEntityInSphere(pent, pEdict->v.origin, 60.0f)) != nullptr) {
 		char item_name[40];
 		std::strcpy(item_name, STRING(pent->v.classname));
@@ -2296,7 +2299,7 @@ bool cBot::hasEnemy() const
  */
 bool cBot::hasEnemy(const edict_t * pEdict) const
 {
-	return this->pEnemyEdict == pEdict;
+	return this->pEnemyEdict == pEntity;
 }
 
 // Returns true if bot has a path to follow
@@ -2310,14 +2313,14 @@ bool cBot::shouldBeWandering() {
 	return false;
 }
 
-void cBot::setMoveSpeed(float value) {
+void cBot::setMoveSpeed(const float value) {
 //    char msg[255];
 //    sprintf(msg, "setting to value %f / maxSpeed %f - sv_maxspeed = %f", value, this->f_max_speed, CVAR_GET_FLOAT("sv_maxspeed"));
 //    rprint_trace("setMoveSpeed", msg);
 	this->f_move_speed = value;
 }
 
-void cBot::setStrafeSpeed(float value, float time) {
+void cBot::setStrafeSpeed(const float value, const float time) {
 	char msg[255];
 	snprintf(msg, sizeof(msg), "%f for %f seconds.", value, time);
 	rprint_trace("setStrafeSpeed", msg);
@@ -2329,17 +2332,17 @@ void cBot::setStrafeSpeed(float value, float time) {
 	// }
 }
 
-void cBot::strafeLeft(float time)
+void cBot::strafeLeft(const float time)
 {
 	setStrafeSpeed(-f_max_speed, time);
 }
 
-void cBot::strafeRight(float time)
+void cBot::strafeRight(const float time)
 {
 	setStrafeSpeed(f_max_speed, time);
 }
 
-void cBot::startWandering(float time)
+void cBot::startWandering(const float time)
 {
 	this->fWanderTime = gpGlobals->time + time;
 	setMoveSpeed(f_max_speed);
@@ -2391,7 +2394,7 @@ int cBot::getGoalNode() const
 	return this->iGoalNode;
 }
 
-void cBot::setGoalNode(int nodeIndex, int iGoalIndex) {
+void cBot::setGoalNode(const int nodeIndex, const int iGoalIndex) {
 	if (nodeIndex < 0) {
 		rprint("setGoalNode()", "WARN: Setting a goal lower than 0, assuming this is not intentional. If you need to forget a goal, use forgetGoal()");
 	}
@@ -2414,7 +2417,7 @@ void cBot::setGoalNode(int nodeIndex, int iGoalIndex) {
 	rprint("setGoalNode()", msg);
 }
 
-void cBot::setGoalNode(int nodeIndex)
+void cBot::setGoalNode(const int nodeIndex)
 {
 	this->setGoalNode(nodeIndex, -1);
 }
@@ -2498,15 +2501,15 @@ bool cBot::hasSecondaryWeaponEquiped() const
 	return iSecondaryWeapon > -1;
 }
 
-bool cBot::hasPrimaryWeapon(int weaponId) const
+/*bool cBot::hasPrimaryWeapon(const int weaponId) const
 {
 	return isOwningWeapon(weaponId);
 }
 
-bool cBot::hasSecondaryWeapon(int weaponId) const
+bool cBot::hasSecondaryWeapon(const int weaponId) const
 {
 	return isOwningWeapon(weaponId);
-}
+}*/
 
 void cBot::performBuyWeapon(const char *menuItem, const char *subMenuItem) {
 	// To be sure the console will only change when we MAY change.
@@ -2525,7 +2528,7 @@ void cBot::performBuyWeapon(const char *menuItem, const char *subMenuItem) {
 	}
 }
 
-void cBot::performBuyActions(int weaponIdToBuy) {
+void cBot::performBuyActions(const int weaponIdToBuy) {
 	if (weaponIdToBuy < 0) {
 		return;
 	}
@@ -2988,7 +2991,7 @@ void cBot::Walk() //Experimental implementation [APG]RoboCop[CL]
 
 
 // BOT: Do i carry weapon # now?
-bool cBot::CarryWeapon(int iType) const
+bool cBot::CarryWeapon(const int iType) const
 {
 	if (current_weapon.iId == iType)
 		return true;
@@ -3128,7 +3131,7 @@ int cBot::determineCurrentNodeWithTwoAttempts() {
 /**
 Find node close to bot, given range. Does not cache result.
 **/
-int cBot::determineCurrentNode(float range) const
+int cBot::determineCurrentNode(const float range) const
 {
 	return NodeMachine.getClosestNode(pEdict->v.origin, range, pEdict);
 }
@@ -3925,7 +3928,7 @@ bool cBot::canSeeEntity(edict_t *pEntity) const
  * @param nodeIndex
  * @return
  */
-float cBot::getDistanceTo(int nodeIndex) {
+float cBot::getDistanceTo(const int nodeIndex) {
 	const tNode *nodePtr = NodeMachine.getNode(nodeIndex);
 	if (nodePtr != nullptr) {
 		return getDistanceTo(nodePtr->origin);
@@ -4237,14 +4240,14 @@ float cBot::getDistanceToNextNode() const
 	return MAP_MAX_SIZE;
 }
 
-void cBot::setBodyToNode(int nodeIndex) {
+void cBot::setBodyToNode(const int nodeIndex) {
 	const tNode *node = NodeMachine.getNode(nodeIndex);
 	if (node) {
 		vBody = node->origin;
 	}
 }
 
-void cBot::lookAtNode(int nodeIndex) {
+void cBot::lookAtNode(const int nodeIndex) {
 	const tNode *node = NodeMachine.getNode(nodeIndex);
 	if (node) {
 		vHead = node->origin;
@@ -4256,7 +4259,7 @@ void cBot::lookAtNode(int nodeIndex) {
  * we used.
  * @param timeInSeconds
  */
-void cBot::setTimeToMoveToNode(float timeInSeconds) {
+void cBot::setTimeToMoveToNode(const float timeInSeconds) {
 	char msg[255];
 	const float endTime = gpGlobals->time + timeInSeconds;
 	snprintf(msg, sizeof(msg), "Set to %f so results into end time of %f", timeInSeconds, endTime);
@@ -4270,7 +4273,7 @@ void cBot::setTimeToMoveToNode(float timeInSeconds) {
  * Whatever was set, increase the time given in function param. This expands the time a bit.
  * @param timeInSeconds
  */
-void cBot::increaseTimeToMoveToNode(float timeInSeconds) {
+void cBot::increaseTimeToMoveToNode(const float timeInSeconds) {
 	if (nodeTimeIncreasedAmount < 2) {
 		nodeTimeIncreasedAmount++;
 		this->fMoveToNodeTime += timeInSeconds;
@@ -4299,7 +4302,7 @@ bool cBot::shouldWait() const
 	return f_wait_time > gpGlobals->time;
 }
 
-void cBot::setTimeToWait(float timeInSeconds)
+void cBot::setTimeToWait(const float timeInSeconds)
 {
 	this->f_wait_time = gpGlobals->time + timeInSeconds;
 }
@@ -4324,7 +4327,7 @@ bool cBot::hasCurrentNode() const
  * @param destinationNode
  * @return
  */
-bool cBot::createPath(int destinationNode) {
+bool cBot::createPath(const int destinationNode) {
 	return createPath(destinationNode, PATH_NONE);
 }
 
@@ -4334,7 +4337,7 @@ bool cBot::createPath(int destinationNode) {
  * @param flags
  * @return
  */
-bool cBot::createPath(int destinationNode, int flags) {
+bool cBot::createPath(const int destinationNode, const int flags) {
 	if (destinationNode < 0 || destinationNode >= MAX_NODES) {
 		rprint("createPath()", "Unable to create path because destination node provided is < 0 or > MAX_NODES");
 		return false;

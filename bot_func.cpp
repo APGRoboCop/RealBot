@@ -8,7 +8,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -20,9 +20,9 @@
   *
   * Pierre Marie Baty
   * Count-Floyd
-  *  
+  *
   * !! BOTS-UNITED FOREVER !!
-  *  
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -48,13 +48,13 @@ extern int mod_id;
 extern int m_spriteTexture;
 
 // defined in dll.cpp
-extern FILE *fpRblog;
+extern FILE* fpRblog;
 
 //
 extern cNodeMachine NodeMachine;
 
 // For taking cover decision
-#define TOTAL_SCORE 16300       // 16000 money + 100 health + 100 fear + 100 camp desire
+constexpr int TOTAL_SCORE = 16300;  // 16000 money + 100 health + 100 fear + 100 camp desire;
 
 bool VectorIsVisibleWithEdict(edict_t *pEdict, const Vector& dest, const char *checkname) {
     TraceResult tr;
@@ -63,7 +63,7 @@ bool VectorIsVisibleWithEdict(edict_t *pEdict, const Vector& dest, const char *c
 
     // trace a line from bot's eyes to destination...
     UTIL_TraceLine(start, dest, ignore_monsters,
-                   pEdict->v.pContainingEntity, &tr);
+        pEdict->v.pContainingEntity, &tr);
 
     // When our check string is not "none" and the traceline has a hit...
     if (std::strcmp("none", checkname) != 0 && tr.flFraction < 1.0f) {
@@ -90,7 +90,7 @@ bool VectorIsVisibleWithEdict(edict_t *pEdict, const Vector& dest, const char *c
 
 }
 
-bool VectorIsVisible(const Vector& start, const Vector& dest, char *checkname) {
+bool VectorIsVisible(const Vector& start, const Vector& dest, const char *checkname) {
     TraceResult tr;
 
     // trace a line from bot's eyes to destination...
@@ -136,7 +136,7 @@ float func_distance(Vector v1, Vector v2) {
  * @param dest
  * @return
  */
-int FUNC_InFieldOfView(edict_t *pEntity, const Vector& dest) {
+int FUNC_InFieldOfView(edict_t* pEntity, const Vector& dest) {
     // NOTE: Copy from Botman's BotInFieldOfView() routine.
     // find angles from source to destination...
     Vector entity_angles = UTIL_VecToAngles(dest);
@@ -172,7 +172,7 @@ int FUNC_InFieldOfView(edict_t *pEntity, const Vector& dest) {
  * @param start
  * @param end
  */
-void DrawBeam(edict_t *visibleForWho, const Vector& start, const Vector& end) {
+void DrawBeam(edict_t* visibleForWho, const Vector& start, const Vector& end) {
     DrawBeam(visibleForWho, start, end, 25, 1, 255, 255, 255, 255, 1);
 }
 
@@ -185,7 +185,7 @@ void DrawBeam(edict_t *visibleForWho, const Vector& start, const Vector& end) {
  * @param g
  * @param b
  */
-void DrawBeam(edict_t *visibleForWho, const Vector& start, const Vector& end, int r, int g, int b) {
+void DrawBeam(edict_t* visibleForWho, const Vector& start, const Vector& end, const int r, const int g, const int b) {
     DrawBeam(visibleForWho, start, end, 25, 1, r, g, b, 255, 1);
 }
 
@@ -202,9 +202,9 @@ void DrawBeam(edict_t *visibleForWho, const Vector& start, const Vector& end, in
  * @param brightness
  * @param speed
  */
-void DrawBeam(edict_t *visibleForWho, const Vector& start, const Vector& end, int width,
-              int noise, int red, int green, int blue, int brightness,
-              int speed) {
+void DrawBeam(edict_t* visibleForWho, const Vector& start, const Vector& end, const int width, const int noise,
+    const int red, const int green, const int blue, const int brightness, const int speed)
+{
     MESSAGE_BEGIN(MSG_ONE, SVC_TEMPENTITY, nullptr, visibleForWho);
     WRITE_BYTE(TE_BEAMPOINTS);
     WRITE_COORD(start.x);
@@ -234,13 +234,14 @@ void DrawBeam(edict_t *visibleForWho, const Vector& start, const Vector& end, in
  * @param pBot
  * @return
  */
-cBot *getCloseFellowBot(cBot *pBot) {
-	const edict_t *pEdict = pBot->pEdict;
-    cBot *closestBot = nullptr;
+cBot* getCloseFellowBot(cBot* pBot) {
+    const edict_t* pEdict = pBot->pEdict;
+    cBot* closestBot = nullptr;
+    float minDistance = NODE_ZONE;
 
     // Loop through all clients
     for (int i = 1; i <= gpGlobals->maxClients; i++) {
-        edict_t *pPlayer = INDEXENT(i);
+        edict_t* pPlayer = INDEXENT(i);
 
         // skip invalid players
         if (pPlayer && !pPlayer->free && pPlayer != pEdict) {
@@ -248,13 +249,15 @@ cBot *getCloseFellowBot(cBot *pBot) {
             if (!IsAlive(pPlayer))
                 continue;
 
-            cBot *pBotPointer = UTIL_GetBotPointer(pPlayer);
+            cBot* pBotPointer = UTIL_GetBotPointer(pPlayer);
             // skip anything that is not a RealBot
             if (pBotPointer == nullptr)       // not using FL_FAKECLIENT here so it is multi-bot compatible
                 continue;
 
-            if (func_distance(pBot->pEdict->v.origin, pPlayer->v.origin) < NODE_ZONE) {
+            const float distance = func_distance(pBot->pEdict->v.origin, pPlayer->v.origin);
+            if (distance < minDistance) {
                 closestBot = pBotPointer;    // set pointer
+                minDistance = distance;
             }
         }
     }
@@ -267,27 +270,27 @@ cBot *getCloseFellowBot(cBot *pBot) {
  * @param pBot
  * @return
  */
-edict_t * getPlayerNearbyBotInFOV(cBot *pBot) {
-	const edict_t *pEdict = pBot->pEdict;
+edict_t* getPlayerNearbyBotInFOV(cBot* pBot) {
+    const edict_t* pEdict = pBot->pEdict;
 
     for (int i = 1; i <= gpGlobals->maxClients; i++) {
-        edict_t *pPlayer = INDEXENT(i);
+        edict_t* pPlayer = INDEXENT(i);
 
         // skip invalid players and skip self (i.e. this bot)
         if (pPlayer && !pPlayer->free && pPlayer != pEdict) {
-	        constexpr int fov = 90;// TODO: use server var "default_fov" ?
-	        // skip this player if not alive (i.e. dead or dying)
+            constexpr int fov = 90;// TODO: use server var "default_fov" ?
+            // skip this player if not alive (i.e. dead or dying)
             if (!IsAlive(pPlayer))
                 continue;
 
             if (!(pPlayer->v.flags & FL_THIRDPARTYBOT
-	            || pPlayer->v.flags & FL_FAKECLIENT
-	            || pPlayer->v.flags & FL_CLIENT))
+                || pPlayer->v.flags & FL_FAKECLIENT
+                || pPlayer->v.flags & FL_CLIENT))
                 continue;
 
             const int angleToPlayer = FUNC_InFieldOfView(pBot->pEdict, pPlayer->v.origin - pBot->pEdict->v.origin);
 
-	        constexpr int distance = NODE_ZONE;
+            constexpr int distance = NODE_ZONE;
             if (func_distance(pBot->pEdict->v.origin, pPlayer->v.origin) < distance && angleToPlayer < fov) {
                 return pPlayer;
             }
@@ -301,10 +304,10 @@ edict_t * getPlayerNearbyBotInFOV(cBot *pBot) {
  * @param pBot
  * @return
  */
-edict_t * getEntityNearbyBotInFOV(cBot *pBot) {
-    edict_t *pEdict = pBot->pEdict;
+edict_t* getEntityNearbyBotInFOV(cBot* pBot) {
+    edict_t* pEdict = pBot->pEdict;
 
-    edict_t *pent = nullptr;
+    edict_t* pent = nullptr;
     while ((pent = UTIL_FindEntityInSphere(pent, pEdict->v.origin, 45)) != nullptr) {
         if (pent == pEdict) continue; // skip self
 
@@ -319,13 +322,12 @@ edict_t * getEntityNearbyBotInFOV(cBot *pBot) {
  * Return TRUE of any players are near that could block him, regardless of FOV. Just checks distance
  * @param pBot
  * @return
- */ //TODO: FOV and angleToPlayer are unused variables [APG]RoboCop[CL]
-bool isAnyPlayerNearbyBot(cBot *pBot) {
-	const edict_t *pEdict = pBot->pEdict;
-    //int fov = 105;
+ */
+bool isAnyPlayerNearbyBot(cBot* pBot) {
+    const edict_t* pEdict = pBot->pEdict;
 
     for (int i = 1; i <= gpGlobals->maxClients; i++) {
-        edict_t *pPlayer = INDEXENT(i);
+        edict_t* pPlayer = INDEXENT(i);
 
         // skip invalid players and skip self (i.e. this bot)
         if (pPlayer && !pPlayer->free && pPlayer != pEdict) {
@@ -334,11 +336,9 @@ bool isAnyPlayerNearbyBot(cBot *pBot) {
                 continue;
 
             if (!(pPlayer->v.flags & FL_THIRDPARTYBOT
-	            || pPlayer->v.flags & FL_FAKECLIENT
-	            || pPlayer->v.flags & FL_CLIENT))
+                || pPlayer->v.flags & FL_FAKECLIENT
+                || pPlayer->v.flags & FL_CLIENT))
                 continue;
-
-            //int angleToPlayer = FUNC_InFieldOfView(pBot->pEdict, (pPlayer->v.origin - pBot->pEdict->v.origin));
 
             constexpr int distance = NODE_ZONE;
             if (func_distance(pBot->pEdict->v.origin, pPlayer->v.origin) < distance) {
@@ -354,7 +354,7 @@ bool isAnyPlayerNearbyBot(cBot *pBot) {
  * @param pBot
  * @return
  */
-bool BotShouldJumpIfStuck(cBot *pBot) {
+bool BotShouldJumpIfStuck(cBot* pBot) {
     if (pBot->isDefusing()) {
         pBot->rprint_trace("BotShouldJumpIfStuck", "Returning false because defusing.");
         return false;
@@ -376,7 +376,7 @@ bool BotShouldJumpIfStuck(cBot *pBot) {
     }
 
     // should not jump, perhaps its a func_illusionary causing that we're stuck?
-    const edict_t *entityInFov = getEntityNearbyBotInFOV(pBot);
+    const edict_t* entityInFov = getEntityNearbyBotInFOV(pBot);
 
     if (entityInFov && std::strcmp("func_illusionary", STRING(entityInFov->v.classname)) == 0) {
         return true; // yes it is the case
@@ -390,7 +390,7 @@ bool BotShouldJumpIfStuck(cBot *pBot) {
  * @param pBot
  * @return
  */
-bool BotShouldJump(cBot *pBot) {
+bool BotShouldJump(cBot* pBot) {
     // When a bot should jump, something is blocking his way.
     // Most of the time it is a fence, or a 'half wall' that reaches from body to feet
     // However, the body most of the time traces above this wall.
@@ -405,11 +405,11 @@ bool BotShouldJump(cBot *pBot) {
         return false;
     }
 
-    if (pBot->isJumping()) 
+    if (pBot->isJumping())
         return false; // already jumping
 
     TraceResult tr;
-    const edict_t *pEdict = pBot->pEdict;
+    const edict_t* pEdict = pBot->pEdict;
 
     // convert current view angle to vectors for TraceLine math...
 
@@ -452,23 +452,23 @@ bool BotShouldJump(cBot *pBot) {
     v_dest = v_source + gpGlobals->v_forward * 40;
 
     //
-	// int player_index = 0;
-	//    for (player_index = 1; player_index <= gpGlobals->maxClients;
-	//         player_index++) {
-	//        edict_t *pPlayer = INDEXENT(player_index);
-	//
-	//        if (pPlayer && !pPlayer->free) {
-	//            if (FBitSet(pPlayer->v.flags, FL_CLIENT)) { // do not draw for now
-	//
-	//                DrawBeam(
-	//                        pPlayer, // player sees beam
-	//                        v_source, // + Vector(0, 0, 32) (head?)
-	//                        v_dest,
-	//                        255, 255, 255
-	//                );
-	//            }
-	//        }
-	//    }
+    // int player_index = 0;
+    //    for (player_index = 1; player_index <= gpGlobals->maxClients;
+    //         player_index++) {
+    //        edict_t *pPlayer = INDEXENT(player_index);
+    //
+    //        if (pPlayer && !pPlayer->free) {
+    //            if (FBitSet(pPlayer->v.flags, FL_CLIENT)) { // do not draw for now
+    //
+    //                DrawBeam(
+    //                        pPlayer, // player sees beam
+    //                        v_source, // + Vector(0, 0, 32) (head?)
+    //                        v_dest,
+    //                        255, 255, 255
+    //                );
+    //            }
+    //        }
+    //    }
 
     UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
 
@@ -481,8 +481,8 @@ bool BotShouldJump(cBot *pBot) {
     if (tr.pHit) {
         pBot->rprint_trace("trace pHit", STRING(tr.pHit->v.classname));
         if (std::strcmp("func_illusionary", STRING(tr.pHit->v.classname)) == 0) {
-        pBot->rprint_trace("BotShouldJump", "#1 Hit a func_illusionary, its a hit as well! (even though trace hit results no)");
-        return true;
+            pBot->rprint_trace("BotShouldJump", "#1 Hit a func_illusionary, its a hit as well! (even though trace hit results no)");
+            return true;
         }
     }
 
@@ -491,7 +491,7 @@ bool BotShouldJump(cBot *pBot) {
 }
 
 // FUNCTION: Calculates angles as pEdict->v.v_angle should be when checking for body
-Vector FUNC_CalculateAngles(const cBot *pBot) {
+Vector FUNC_CalculateAngles(const cBot* pBot) {
     // aim for the head and/or body
     const Vector v_target = pBot->vBody - pBot->pEdict->v.origin;
     Vector v_body = UTIL_VecToAngles(v_target);
@@ -566,9 +566,9 @@ bool BotShouldDuck(cBot *pBot) {
 
 bool BotShouldDuckJump(cBot* pBot) //Experimental DuckJump Incomplete [APG]RoboCop[CL]
 {
-	// This is crucial for bots to sneak inside vents and tight areas in order
-	// to inflitrate and prooceed on ahead. DuckJump is required for vaulting
-	// on top of crates, window ledges and edges as an important method.
+    // This is crucial for bots to sneak inside vents and tight areas in order
+    // to inflitrate and prooceed on ahead. DuckJump is required for vaulting
+    // on top of crates, window ledges and edges as an important method.
 
     if (pBot->isDefusing()) {
         pBot->rprint_trace("BotShouldDuckJump", "Returning false because defusing.");
@@ -576,14 +576,14 @@ bool BotShouldDuckJump(cBot* pBot) //Experimental DuckJump Incomplete [APG]RoboC
     }
 
     if (pBot->iDuckJumpTries > 5) {
-	    // tried to duck 5 times, so no longer!
-    	pBot->rprint_trace("BotShouldDuck", "Returning false because ducked too many times.");
-    	return false;
+        // tried to duck 5 times, so no longer!
+        pBot->rprint_trace("BotShouldDuck", "Returning false because ducked too many times.");
+        return false;
     }
-	
-    if (pBot->isDuckJumping()) 
+
+    if (pBot->isDuckJumping())
         return false; // already duckjumping
-	
+
     return false;
 }
 
@@ -592,7 +592,7 @@ bool BotShouldDuckJump(cBot* pBot) //Experimental DuckJump Incomplete [APG]RoboC
  * @param pBot
  * @return
  */
-bool FUNC_DoRadio(const cBot *pBot) {
+bool FUNC_DoRadio(const cBot* pBot) {
 
     if (pBot->fDoRadio > gpGlobals->time) // allowed?
         return false;
@@ -603,7 +603,7 @@ bool FUNC_DoRadio(const cBot *pBot) {
 }
 
 // DECIDE: Take cover or not
-bool FUNC_ShouldTakeCover(cBot *pBot) {
+bool FUNC_ShouldTakeCover(cBot* pBot) {
     // Do not allow taking cover within 3 seconds again.
     if (pBot->f_cover_time + 3 > gpGlobals->time)
         return false;
@@ -635,7 +635,7 @@ bool FUNC_TakeCover(cBot* pBot) //Experimental [APG]RoboCop[CL]
     return true;
 }
 
-int FUNC_BotEstimateHearVector(cBot *pBot, const Vector& v_sound) {
+int FUNC_BotEstimateHearVector(cBot* pBot, const Vector& v_sound) {
     // here we normally figure out where to look at when we hear an enemy, RealBot AI PR 2 lagged a lot on this so we need another approach
 
     return -1;
@@ -643,18 +643,15 @@ int FUNC_BotEstimateHearVector(cBot *pBot, const Vector& v_sound) {
 
 // Added Stefan
 // 7 November 2001
-int FUNC_PlayerSpeed(const edict_t *edict) {
+int FUNC_PlayerSpeed(const edict_t* edict) {
     if (edict != nullptr)
         return static_cast<int>(edict->v.velocity.Length2D());      // Return speed of any edict given
 
     return 0;
 }
 
-bool FUNC_PlayerRuns(int speed) {
-    if (speed < 200)
-        return false;               // We make no sound
-	
-    return true;                    // We make sound
+bool FUNC_PlayerRuns(const int speed) {
+    return speed >= 200;
 }
 
 // return weapon type of edict.
@@ -690,24 +687,24 @@ int FUNC_EdictHoldsWeapon(const edict_t *pEdict) {
     return -1;
 }
 
-int FUNC_FindFarWaypoint(cBot* pBot, const Vector& avoid, bool safest) //Experimental [APG]RoboCop[CL]
+int FUNC_FindFarWaypoint(cBot* pBot, const Vector& avoid, const bool safest) //Experimental [APG]RoboCop[CL]
 {
-	// Find a waypoint that is far away from the enemy.
-	// If safest is true, then we want the safest waypoint.
-	// If safest is false, then we want the farthest waypoint.
+    // Find a waypoint that is far away from the enemy.
+    // If safest is true, then we want the safest waypoint.
+    // If safest is false, then we want the farthest waypoint.
 
-	// Find the farthest waypoint
-	int farthest = -1;
-	float farthest_distance = 0.0f;
+    // Find the farthest waypoint
+    int farthest = -1;
+    float farthest_distance = 0.0f;
 
-	for (int i = 0; i < gpGlobals->maxEntities; i++) {
-		const edict_t *pEdict = INDEXENT(i);
+    for (int i = 0; i < gpGlobals->maxEntities; i++) {
+        const edict_t* pEdict = INDEXENT(i);
 
-		if (pEdict == nullptr)
-			continue;
+        if (pEdict == nullptr)
+            continue;
 
-		if (pEdict->v.flags & FL_DORMANT)
-			continue;
+        if (pEdict->v.flags & FL_DORMANT)
+            continue;
 
         if (pEdict->v.classname != 0 && std::strcmp(STRING(pEdict->v.classname), "info_waypoint") == 0) {
             if (farthest == -1) {
@@ -729,29 +726,29 @@ int FUNC_FindFarWaypoint(cBot* pBot, const Vector& avoid, bool safest) //Experim
                 }
             }
         }
-	}
+    }
 
-	return farthest;
+    return farthest;
 }
 
 int FUNC_FindCover(const cBot* pBot) //Experimental [APG]RoboCop[CL]
 {
-	// Find a waypoint that is far away from the enemy.
-	// If safest is true, then we want the safest waypoint.
-	// If safest is false, then we want the farthest waypoint.
+    // Find a waypoint that is far away from the enemy.
+    // If safest is true, then we want the safest waypoint.
+    // If safest is false, then we want the farthest waypoint.
 
-	// Find the farthest waypoint
-	int farthest = -1;
-	float farthest_distance = 0.0f;
+    // Find the farthest waypoint
+    int farthest = -1;
+    float farthest_distance = 0.0f;
 
-	for (int i = 0; i < gpGlobals->maxEntities; i++) {
-		const edict_t *pEdict = INDEXENT(i);
+    for (int i = 0; i < gpGlobals->maxEntities; i++) {
+        const edict_t* pEdict = INDEXENT(i);
 
-		if (pEdict == nullptr)
-			continue;
+        if (pEdict == nullptr)
+            continue;
 
-		if (pEdict->v.flags & FL_DORMANT)
-			continue;
+        if (pEdict->v.flags & FL_DORMANT)
+            continue;
 
         if (pEdict->v.classname != 0 && std::strcmp(STRING(pEdict->v.classname), "info_waypoint") == 0) {
             if (farthest == -1) {
@@ -766,13 +763,13 @@ int FUNC_FindCover(const cBot* pBot) //Experimental [APG]RoboCop[CL]
                 }
             }
         }
-	}
+    }
 
-	return farthest;
+    return farthest;
 }
 
 // Function to let a bot react on some sound which he cannot see
-void FUNC_HearingTodo(cBot *pBot) {
+void FUNC_HearingTodo(cBot* pBot) {
     // This is called every frame.
     if (pBot->f_hear_time > gpGlobals->time)
         return;                   // Do nothing, we need more time to think
@@ -795,16 +792,18 @@ void FUNC_HearingTodo(cBot *pBot) {
     else if (/*health >= 25 &&*/ health < 75)
         action = 1;
     else
-        action = -1;
+        action = 0;
 
     if (action == 0) {
         etime = RANDOM_LONG(2, 6);
         pBot->f_camp_time = gpGlobals->time + etime;
         pBot->forgetGoal();
-    } else if (action == 1) {
+    }
+    else if (action == 1) {
         etime = RANDOM_LONG(1, 7);
         pBot->f_walk_time = gpGlobals->time + etime;
-    } else if (action == 2) {
+    }
+    else {
         etime = RANDOM_LONG(1, 5);
         pBot->f_hold_duck = gpGlobals->time + etime;
     }
@@ -820,11 +819,11 @@ void FUNC_HearingTodo(cBot *pBot) {
  *  Created : 16/11/2001
  *	Changed : 16/11/2001
  */
-void FUNC_ClearEnemyPointer(edict_t *pPtr) { //pPtr muddled with c_pointer? [APG]RoboCop[CL]
+void FUNC_ClearEnemyPointer(edict_t* pPtr) { //pPtr muddled with c_pointer? [APG]RoboCop[CL]
     // Go through all bots and remove their enemy pointer that matches the given
     // pointer pPtr
     for (int i = 1; i <= gpGlobals->maxClients; i++) {
-        edict_t *pPlayer = INDEXENT(i);
+        edict_t* pPlayer = INDEXENT(i);
 
         // Skip invalid players.
         if (pPlayer && !pPlayer->free) {
@@ -838,11 +837,11 @@ void FUNC_ClearEnemyPointer(edict_t *pPtr) { //pPtr muddled with c_pointer? [APG
                 continue;
 
             // check if it is a bot known to us (ie, not another metamod supported bot)
-            cBot *botpointer = UTIL_GetBotPointer(pPlayer);
+            cBot* botpointer = UTIL_GetBotPointer(pPlayer);
 
             if (botpointer &&                   // Is a bot managed by us
                 botpointer->hasEnemy(pPtr) // and has the pointer we want to get rid of
-                    ) {
+                ) {
                 botpointer->forgetEnemy();    // Clear its pointer
             }
         }
@@ -850,46 +849,45 @@ void FUNC_ClearEnemyPointer(edict_t *pPtr) { //pPtr muddled with c_pointer? [APG
 }
 
 // Returns true/false if an entity is on a ladder
-bool FUNC_IsOnLadder(const edict_t *pEntity) {
+bool FUNC_IsOnLadder(const edict_t* pEntity) {
     if (pEntity == nullptr)
         return false;
 
-    if (pEntity->v.movetype == MOVETYPE_FLY)
-        return true;
-
-    return false;
+    return pEntity->v.movetype == MOVETYPE_FLY;
 }
 
-void FUNC_FindBreakable(cBot* pBot)  // Updated function signature to accept cBot*
+void FUNC_FindBreakable(cBot* pBot)
 {
-    // The "func_breakable" entity required for glass breaking and weak doors for bots to recognize,
-    // in order to attack breakable objects that would block their way.
-    if (pBot == nullptr) {
-        return; // Ensure pBot is not null
+    // The "func_breakable" entity is required for bots to recognize and attack
+    // breakable objects like glass or weak doors that block their path.
+    if (pBot == nullptr || pBot->pEdict == nullptr) {
+        return; // Ensure pBot and its edict are not null
     }
 
-    edict_t* pEntity = pBot->pEdict; // Get the edict from the bot
+    edict_t* pEntity = pBot->pEdict;
+    edict_t* pent = nullptr;
 
-    for (int i = 0; i < gpGlobals->maxEntities; ++i) {
-        edict_t* pent = INDEXENT(i);
-        if (pent == nullptr || (pent->v.flags & FL_DORMANT)) {
-            continue; // Skip null or dormant entities
+    // Search for entities within a 256-unit radius around the bot
+    while ((pent = UTIL_FindEntityInSphere(pent, pEntity->v.origin, 256.0f)) != nullptr)
+    {
+        if (pent == pEntity || (pent->v.flags & FL_DORMANT)) {
+            continue; // Skip self and dormant entities
         }
 
         const char* classname = STRING(pent->v.classname);
 
         if (classname != nullptr && std::strcmp(classname, "func_breakable") == 0) {
             if (FVisible(pent->v.origin, pEntity)) {
-                // Set the breakable entity as the entity's enemy
-                pEntity->v.enemy = pent;
+                // Set the breakable entity as the bot's enemy
+                pBot->pEdict->v.enemy = pent;
 
                 // Aim at the breakable entity
-                Vector vBody = pent->v.origin;
-                Vector vHead = pent->v.origin;
+                pBot->vBody = pent->v.origin;
+                pBot->vHead = pent->v.origin;
 
                 // Shoot at the breakable entity
-                UTIL_BotPressKey(pBot, IN_ATTACK); // Updated to use pBot instead of pEntity
-                return; // Exit after finding the first breakable entity
+                UTIL_BotPressKey(pBot, IN_ATTACK);
+                return; // Exit after finding the first visible breakable entity
             }
         }
     }
@@ -913,21 +911,22 @@ void FUNC_FindBreakable(cBot* pBot)  // Updated function signature to accept cBo
 
 void FUNC_CheckForBombPlanted(edict_t* pEntity) //Experimental [APG]RoboCop[CL]
 {
-	// Check if the bot has a bomb planted.
-	// If so, then we need to go to the bomb site.
-	// If not, then we need to go to the waypoint.
-	
+    // Check if the bot has a bomb planted.
+    // If so, then we need to go to the bomb site.
+    // If not, then we need to go to the waypoint.
+
     // "models/w_c4.mdl" needed for CTs to see the bomb? [APG]RoboCop[CL]
-	if (pEntity->v.model != 0 && std::strcmp(STRING(pEntity->v.model), "models/w_c4.mdl") == 0) {
-		// Bot has a bomb planted.
-		// Go to the bomb site.
-		pEntity->v.button |= IN_USE;
-		pEntity->v.button |= IN_ATTACK;
-	} else {
-		// Bot does not have a bomb planted.
-		// Go to the waypoint.
-		pEntity->v.button |= IN_USE;
-	}
+    if (pEntity->v.model != 0 && std::strcmp(STRING(pEntity->v.model), "models/w_c4.mdl") == 0) {
+        // Bot has a bomb planted.
+        // Go to the bomb site.
+        pEntity->v.button |= IN_USE;
+        pEntity->v.button |= IN_ATTACK;
+    }
+    else {
+        // Bot does not have a bomb planted.
+        // Go to the waypoint.
+        pEntity->v.button |= IN_USE;
+    }
 }
 
 /**
@@ -940,26 +939,26 @@ void FUNC_CheckForBombPlanted(edict_t* pEntity) //Experimental [APG]RoboCop[CL]
 bool isHostageFree(cBot* pBotWhoIsAsking, edict_t* pHostage) {
     if (pHostage == nullptr) return false;
     if (pBotWhoIsAsking == nullptr) return false;
-	
+
     for (int i = 1; i <= gpGlobals->maxClients; i++) {
         edict_t* pPlayer = INDEXENT(i);
         if (!pPlayer || pPlayer->free) // free - ie no client
             continue; // next
-    	
+
         // skip this player if not alive (i.e. dead or dying)
         if (!IsAlive(pPlayer))
             continue;
-    	
+
         // not a bot
         if (!(pPlayer->v.flags & FL_THIRDPARTYBOT))
             continue;
-    	
+
         // Only check other bots (do not check self)
         cBot* botpointer = UTIL_GetBotPointer(pPlayer);
         if (botpointer && // a bot
             botpointer != pBotWhoIsAsking && // not self
             !botpointer->isDead()) { // not dead
-        	
+
             // other bot uses hostage, so hostage is not 'free'
             if (botpointer->isUsingHostage(pHostage)) {
                 pBotWhoIsAsking->rprint("Looks like the hostage is used by another one");
@@ -968,11 +967,11 @@ bool isHostageFree(cBot* pBotWhoIsAsking, edict_t* pHostage) {
             }
         }
     }
-	
+
     return true;
 }
 
-void TryToGetHostageTargetToFollowMe(cBot *pBot) {
+void TryToGetHostageTargetToFollowMe(cBot* pBot) {
     if (pBot->hasEnemy()) {
         return;                   // enemy, do not check
     }
@@ -982,7 +981,7 @@ void TryToGetHostageTargetToFollowMe(cBot *pBot) {
         return;
     }
 
-    edict_t *pHostage = pBot->getHostageToRescue();
+    edict_t* pHostage = pBot->getHostageToRescue();
 
     if (pHostage == nullptr) {
         pHostage = pBot->findHostageToRescue();
@@ -1044,15 +1043,15 @@ void TryToGetHostageTargetToFollowMe(cBot *pBot) {
     }
 }
 
-bool isHostageRescued(cBot *pBot, const edict_t *pHostage) //pBot not used [APG]RoboCop[CL]
+bool isHostageRescued(cBot* pBot, const edict_t* pHostage) //pBot not used [APG]RoboCop[CL]
 {
     if (pHostage == nullptr) return false;
 
     if (FBitSet(pHostage->v.effects, EF_NODRAW)) {
-//        pBot->rprint("isHostageRescued()", "Hostage is rescued");
+        //        pBot->rprint("isHostageRescued()", "Hostage is rescued");
         return true;
     }
-//    pBot->rprint("isHostageRescued()", "Hostage is NOT rescued");
+    //    pBot->rprint("isHostageRescued()", "Hostage is NOT rescued");
     return false;
 }
 
@@ -1141,26 +1140,26 @@ bool isHostageRescueable(cBot *pBot, edict_t *pHostage) {
     return true;
 }
 
-bool FUNC_EdictIsAlive(edict_t *pEdict) {
+bool FUNC_EdictIsAlive(edict_t* pEdict) {
     if (pEdict == nullptr) return false;
     return pEdict->v.health > 0;
 }
 
 // HostageNear()
 
-bool FUNC_BotHoldsZoomWeapon(cBot *pBot) {
+bool FUNC_BotHoldsZoomWeapon(cBot* pBot) {
     // Check if the bot holds a weapon that can zoom, but is not a sniper gun.
     return pBot->isHoldingWeapon(CS_WEAPON_AUG) || pBot->isHoldingWeapon(CS_WEAPON_SG552);
 }
 
-void FUNC_BotChecksFalling(cBot *pBot) {
+void FUNC_BotChecksFalling(cBot* pBot) {
     // This routine should never be filled with code.
     // - Bots should simply never fall
     // - If bots do fall, check precalculation routine.
 }
 
 // New function to display a message on the center of the screen
-void CenterMessage(char *buffer) {
+void CenterMessage(char* buffer) {
     //DebugOut("waypoint: CenterMessage():\n");
     //DebugOut(buffer);
     //DebugOut("\n");
@@ -1168,7 +1167,7 @@ void CenterMessage(char *buffer) {
 }
 
 // Bot Takes Cover
-bool BOT_DecideTakeCover(cBot *pBot) {
+bool BOT_DecideTakeCover(cBot* pBot) {
     /*
            UTIL_ClientPrintAll( HUD_PRINTCENTER, "DECISION TO TAKE COVER\n" );
 
@@ -1192,7 +1191,7 @@ bool BOT_DecideTakeCover(cBot *pBot) {
 // logs into a file
 void rblog(const char* txt) {
     // output to stdout
-	//printf("%s", txt); // Excessive log spewing [APG]RoboCop[CL]
+    //printf("%s", txt); // Excessive log spewing [APG]RoboCop[CL]
 
     // and to reallog file
     if (fpRblog) {

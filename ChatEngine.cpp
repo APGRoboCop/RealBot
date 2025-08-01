@@ -8,7 +8,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -20,9 +20,9 @@
   *
   * Pierre Marie Baty
   * Count-Floyd
-  *  
+  *
   * !! BOTS-UNITED FOREVER !!
-  *  
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -203,7 +203,7 @@ void cChatEngine::think() {
     // end of loop
 
     // now loop through all blocks and find the one with the most score:
-    int iMaxScore = -1;
+    int iMaxScore = 0;
     int iTheBlock = -1;
 
     // for all blocks
@@ -233,11 +233,9 @@ void cChatEngine::think() {
             edict_t* pPlayer = INDEXENT(i);
 
             // skip invalid players and skip self (i.e. this bot)
-            if (pPlayer && !pPlayer->free && pSender != pPlayer) {
-                const bool bSenderAlive = IsAlive(pSender);      // CRASH : it sometimes crashes here
-                const bool bPlayerAlive = IsAlive(pPlayer);
-
-                if (bSenderAlive != bPlayerAlive)
+            if (pPlayer && !pPlayer->free && pSender != pPlayer)
+            {
+                if (!IsAlive(pSender) || !IsAlive(pPlayer))
                     continue;
 
                 cBot* pBotPointer = UTIL_GetBotPointer(pPlayer);
@@ -254,12 +252,9 @@ void cChatEngine::think() {
                                 the_c == iLastSentence) {
                                 // when this is the same, avoid it. Try to change again
                                 if (iMax > 0)
-                                    the_c++;
+                                    the_c = (the_c + 1) % (iMax + 1);
                                 else
                                     continue;      // do not reply double
-
-                                if (the_c > iMax)
-                                    the_c = 0;
                             }
                             // the_c is choosen, it is the sentence we reply with.
                             // do a check if its valid:
@@ -333,9 +328,10 @@ void cChatEngine::think() {
                                     snprintf(chSentence, sizeof(chSentence), "%s \n", temp);
                                 }
                                 // when no name pos is found, we just copy the string and say that (works ok)
-                                else
+                                else {
                                     snprintf(chSentence, sizeof(chSentence), "%s \n",
                                         ReplyBlock[iTheBlock].sentence[the_c]);
+                                }
 
                                 // reply:
                                 pBotPointer->PrepareChat(chSentence);
@@ -394,16 +390,19 @@ void cChatEngine::handle_sentence() {
 }
 
 
-void cChatEngine::set_sentence(char csender[MAX_NAME_LENGTH], char csentence[MAX_SENTENCE_LENGTH]) {
-    if (sender[0] == ' ' || sender[0] == '\0') {
-        std::strcpy(sender, csender);
-#ifdef _WIN32
-        _strupr(csentence);
-#else
-        std::transform(csentence, csentence + std::strlen(csentence), csentence, ::toupper);
-#endif
-        std::strcpy(sentence, csentence);
-    }
+void cChatEngine::set_sentence(char csender[MAX_NAME_LENGTH], char csentence[MAX_SENTENCE_LENGTH]) {  
+    if (sender[0] == ' ' || sender[0] == '\0') {  
+        strncpy(sender, csender, sizeof(sender) - 1);  
+        sender[sizeof(sender) - 1] = '\0';  
+
+#ifdef _WIN32  
+        _strupr(csentence);  
+#else  
+        std::transform(csentence, csentence + std::strlen(csentence), csentence, ::toupper);  
+#endif  
+        strncpy(sentence, csentence, sizeof(sentence) - 1);  
+        sentence[sizeof(sentence) - 1] = '\0';  
+    }  
 }
 
 

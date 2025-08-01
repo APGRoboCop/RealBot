@@ -301,7 +301,7 @@ int INI_SectionType(char section[30], int last) {
 
 // Reads out section[], does a string compare and returns type id
 // BUYTABLE.INI SPECIFIC!
-int INI_SectionType_BUYTABLE(char section[30], int last) {
+int INI_SectionType_BUYTABLE(char section[30], const int last) {
 	if (std::strcmp(section, "P228") == 0)
 		return CS_WEAPON_P228;
 	if (std::strcmp(section, "HEGRENADE") == 0)

@@ -171,7 +171,7 @@ public:
     // -------------------
     // From cheesemonster:
     int GetVisibilityFromTo(int iFrom, int iTo) const; // BERKED
-    void ClearVisibilityTable() const;
+    void ClearVisibilityTable();
 
     void SetVisibilityFromTo(int iFrom, int iTo, bool bVisible);
 
