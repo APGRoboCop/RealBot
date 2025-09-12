@@ -88,7 +88,7 @@ jobs:
       run: |
         mkdir post
         cd post
-        python3 ../configure.py --sdks=present --mm-path="${{ github.workspace }}/realbot/dependencies/metamod-hl1" --hl1sdk="${{ github.workspace }}/realbot/dependencies/hlsdk" --symbol-files --target ${{ matrix.am_arch }} --enable-optimize
+        python3 ../configure.py --mm-path="${{ github.workspace }}/realbot/dependencies/metamod-hl1" --hl1sdk="${{ github.workspace }}/realbot/dependencies/hlsdk" --symbol-files --enable-optimize
         ambuild
 
     - uses: benjlevesque/short-sha@v2.2
