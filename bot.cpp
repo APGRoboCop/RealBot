@@ -1480,7 +1480,7 @@ void cBot::InteractWithPlayers() {
 	// ------------------------------------------------
 	// RESULT > -1 ; ENEMY FOUND / NO SPECIFIC REACTION
 	// ------------------------------------------------
-	if (result > -1 /*&& result < 4*/) {
+	else { // result > -1
 
 		// VIP: When we found an enemy, we have a problem.
 		if (vip) {
@@ -1502,43 +1502,7 @@ void cBot::InteractWithPlayers() {
 			f_update_weapon_time = gpGlobals->time + 0.7f;
 		}
 	}
-	// ------------------------------------------------
-	// RESULT = 1 ; ENEMY FOUND, VIA FRIEND!
-	// ------------------------------------------------
 
-	// When we have found an enemy via a friend, we simply build a path to it.
-	if (result == 1) {
-
-		/*
-		   f_prim_weapon = gpGlobals->time;
-
-		   // DECIDE:
-		   // Do we go into battle, or do we wait first a few seconds?
-
-		   // HEALTH: The less we have, the more we want to wait
-		   int vHealth = 100-bot_health;
-
-		   // CAMP: The more we want to camp, the more we want to wait.
-		   int vCamp = ipCampRate;
-
-		   if (RANDOM_LONG(0,200) < (vHealth+vCamp))
-		   {
-		   // depending on how much we want, the longer we wait
-		   float fWaitTime = ((200/(vHealth+vCamp))*5);
-		   f_wait_time = gpGlobals->time + fWaitTime;
-
-		   // TODO TODO TODO; we might not even want to wait, but also take 'cover'?
-		   }
-
-		   // INITIALIZATION:
-		   int iGoal = NodeMachine.getCloseNode(pBotEnemy->v.origin, NODE_ZONE, pBotEnemy);
-		   if (iGoal > -1)
-		   {
-		   iGoalNode = iGoal;
-		   pathNodeIndex = -1;
-		   }
-		 */
-	}
 	// ------------------------------------------------
 	// RESULT = 0 ; NEW ENEMY FOUND
 	// ------------------------------------------------
@@ -1785,16 +1749,14 @@ bool cBot::Defuse() {
 	// if this bot is close. If so, the bot should be defusing the bomb
 	// if the timers are set. The above check makes sure that no other
 	// bot will be defusing the bomb.
-	edict_t *pent = nullptr;
-	bool c4Found = false;
+	edict_t* pent = nullptr;
 	while ((pent = UTIL_FindEntityByClassname(pent, "grenade")) != nullptr) {
 		if (UTIL_GetGrenadeType(pent) == 4) {     // It is a C4
-			c4Found = true;
 			break;
 		}
 	}
 
-	if (!c4Found) {
+	if (pent == nullptr) {
 		rprint_normal("Defuse()", "No C4 planted yet");
 		return false;
 	}
@@ -1863,20 +1825,20 @@ bool cBot::Defuse() {
 
 	} else {
 		rprint_trace("Defuse()", "I can see C4, but it is out of reach.");
-		const int iGoalNode = NodeMachine.getClosestNode(vC4, distanceForC4ToBeInReach, nullptr);
-		if (iGoalNode < 0) {
+		const int iC4Node = NodeMachine.getClosestNode(vC4, distanceForC4ToBeInReach, nullptr);
+		if (iC4Node < 0) {
 			rprint_normal("Defuse()", "No node close, so just look at it/body face at it and move towards it.");
 			vHead = vC4;
 			vBody = vC4;
 		}
 
-		if (iGoalNode > -1) {
+		if (iC4Node > -1) {
 			// we are not heading for this goal yet
-			if (getGoalNode() != iGoalNode) {
+			if (getGoalNode() != iC4Node) {
 				rprint_normal("Defuse()", "I don't have a goal towards the C4, overriding it now to C4 destination!");
 				forgetPath();
 				forgetGoal();
-				setGoalNode(iGoalNode);
+				setGoalNode(iC4Node);
 			} else {
 				rprint_normal("Defuse()", "I already have a goal towards the C4!");
 			}
@@ -2159,31 +2121,18 @@ void cBot::CheckAround() {
 	rprint_trace("CheckAround", msg);
 
 	// Set 'act' properties
+	const float strafeAmount = DetermineStrafe(bHitForwardLeft, bHitForwardRight, bHitLeft, bHitRight);
+	if (strafeAmount != 0.0f) {
+		setStrafeSpeed(strafeAmount, 0.5f);
+	}
 
-	// we are surrounded, so move backwards
-	if (bHitForward) {
+	// we are surrounded, so move backwards, but only if we are not strafing
+	if (bHitForward && strafeAmount == 0.0f) {
 		rprint_trace("CheckAround", "Something in front of me blocks, so move back.");
-	// f_move_speed = -(f_max_speed);
-	} else {
+		setMoveSpeed(-f_max_speed);
+	}
+	else {
 		rprint_trace("CheckAround", "Nothing in front of me");
-	}
-
-	if (!bHitForwardLeft && bHitForwardRight) {
-		strafeLeft(0.5f);
-		rprint_trace("CheckAround", "Can strafe left (forward left)");
-	} else if (bHitForwardLeft && !bHitForwardRight) {
-		strafeRight(0.5f);
-		rprint_trace("CheckAround", "Can strafe right (forward right)");
-	}
-
-	if (bHitLeft && bHitRight) {
-		rprint_trace("CheckAround", "Can't strafe left or right");
-	} else if (!bHitLeft && bHitRight) {
-		strafeLeft(0.5f);
-		rprint_trace("CheckAround", "Can strafe left");
-	} else if (bHitLeft && !bHitRight) {
-		strafeRight(0.5f);
-		rprint_trace("CheckAround", "Can strafe right");
 	}
 
 	// -------------------------------------------------------------
@@ -2292,12 +2241,12 @@ bool cBot::hasEnemy() const
 	return this->pEnemyEdict != nullptr;
 }
 
-/**
- * Returns true when given edict == our enemy edict
- * @param pEdict
- * @return
- */
-bool cBot::hasEnemy(const edict_t * pEdict) const
+ /**
+  * Returns true when given edict == our enemy edict
+  * @param pEntity
+  * @return
+  */
+bool cBot::hasEnemy(const edict_t* pEntity) const
 {
 	return this->pEnemyEdict == pEntity;
 }
@@ -4408,6 +4357,34 @@ bool cBot::isJumping() {
 		rprint_trace("isJumping", "Yes I am jumping");
 	}
 	return b;
+}
+
+float cBot::DetermineStrafe(const bool bHitForwardLeft, const bool bHitForwardRight, const bool bHitLeft, const bool bHitRight)
+{
+	// Prioritize avoiding diagonal obstacles
+	if (!bHitForwardLeft && bHitForwardRight) {
+		rprint_trace("CheckAround", "Strafing left to avoid forward-right obstacle.");
+		return -f_max_speed;
+	}
+
+	if (bHitForwardLeft && !bHitForwardRight) {
+		rprint_trace("CheckAround", "Strafing right to avoid forward-left obstacle.");
+		return f_max_speed;
+	}
+
+	// If diagonals are clear, check for side obstacles
+	if (!bHitLeft && bHitRight) {
+		rprint_trace("CheckAround", "Strafing left to avoid right obstacle.");
+		return -f_max_speed;
+	}
+
+	if (bHitLeft && !bHitRight) {
+		rprint_trace("CheckAround", "Strafing right to avoid left obstacle.");
+		return f_max_speed;
+	}
+
+	rprint_trace("CheckAround", "No strafing needed or path is blocked on both sides.");
+	return 0.0f;
 }
 
 // Experimental DuckJump added for the NodeMachine [APG]RoboCop[CL]

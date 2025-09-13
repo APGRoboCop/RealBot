@@ -34,7 +34,11 @@
 #include <cctype>
 // Some tests by EVYNCKE
 #include <string>
+#include <string_view>
 #include <algorithm>
+#include <vector>
+#include <sstream>
+
 
 #include <extdll.h>
 #include <dllapi.h>
@@ -52,6 +56,24 @@
 extern edict_t* pHostEdict;
 extern cGame Game;
 extern cBot bots[32];
+
+namespace {
+    edict_t* findPlayerEdictByName(const char* playerName) {
+        if (!playerName || *playerName == '\0') {
+            return nullptr;
+        }
+
+        for (int i = 1; i <= gpGlobals->maxClients; i++) {
+            edict_t* pPlayer = INDEXENT(i);
+            if (pPlayer && !pPlayer->free) {
+                if (std::strcmp(STRING(pPlayer->v.netname), playerName) == 0) {
+                    return pPlayer;
+                }
+            }
+        }
+        return nullptr;
+    }
+}
 
 // initialize all
 void cChatEngine::init() {
@@ -95,39 +117,12 @@ void cChatEngine::think() {
     // if no sender is set, do nothing
     if (sender[0] == '\0') return;
 
-    // 29/08/2019 Stefan: by using string compare on the name of the sender (ie sender[] is the name) we retrieve
-    // the edict pointer
-    edict_t* pSender = nullptr;
-    for (int i = 1; i <= gpGlobals->maxClients; i++) {
-        edict_t* pPlayer = INDEXENT(i);
-
-        if (pPlayer && !pPlayer->free) {
-            char name[30] = {}, name2[30] = {};
-
-            // copy
-            std::strcpy(name, STRING(pPlayer->v.netname));
-            std::strcpy(name2, sender);
-
-            if (std::strcmp(name, name2) == 0) {
-                pSender = pPlayer;
-                break;
-            }
-        }
-    }
-    // Edict pointer established
+    edict_t* pSender = findPlayerEdictByName(sender);
 
     // Scan the message so we know in what block we should be to reply:
-    char word[20] = {};
+    std::string_view sentence_sv(sentence);
 
-    int c = 0;
-    int wc = 0;
-
-    const int sentenceLength = static_cast<int>(std::strlen(sentence));
-
-    // When length is not valid, get out.
-    // 29/08/2019: Stefan, so let me get this. We declare the sentence to be max 128 chars, but then we still could end up with a longer one?
-    // how did we allow for this to happen?
-    if (sentenceLength == 0 || sentenceLength >= MAX_SENTENCE_LENGTH - 1) {
+    if (sentence_sv.empty() || sentence_sv.length() >= MAX_SENTENCE_LENGTH - 1) {
         // clear out sentence and sender
         std::memset(sentence, 0, sizeof(sentence));
         std::memset(sender, 0, sizeof(sender));
@@ -138,69 +133,21 @@ void cChatEngine::think() {
         return;
     }
 
-    int WordBlockScore[MAX_BLOCKS];
+    std::vector WordBlockScore(MAX_BLOCKS, 0);
 
-    // Init, none of the block has a score yet (set to -1)
-    for (int& wbs : WordBlockScore)
-    {
-        wbs = -1;
-    }
-
-    // loop over the sentence character by character
-    while (c < sentenceLength) {
-        // protection matters:
-        if (c < 0)
-            break;
-        // End of protection matters
-
-        // Step: Check character to identify the end of a word.
-        if (sentence[c] == ' ' || sentence[c] == '\n' ||
-            sentence[c] == '.' || sentence[c] == '?' || sentence[c] == '!') {
-            // Now find the word and add up scores on the proper score blocks.
-            // not a good word (too small)
-            if (std::strlen(word) <= 0) {
-                // SERVER_PRINT("This is not a good word!\n");
+    std::stringstream ss(sentence);
+    std::string word_str;
+    while (ss >> word_str) {
+        for (int iB = 0; iB < MAX_BLOCKS; iB++) {
+            if (ReplyBlock[iB].bUsed) {
+                for (const char (&iBw)[25] : ReplyBlock[iB].word) {
+                    if (iBw[0] != '\0' && word_str == iBw) {
+                        WordBlockScore[iB]++;
+                    }
+                }
             }
-            else {
-                for (int iB = 0; iB < MAX_BLOCKS; iB++) {
-                    if (ReplyBlock[iB].bUsed) {
-                        for (const char(&iBw)[25] : ReplyBlock[iB].word) {
-                            // skip any word in the reply block that is not valid
-                            if (iBw[0] == '\0')
-                                continue; // not filled in
-
-                            if (std::strlen(iBw) <= 0)
-                                continue; // not long enough (a space?)
-
-                            // 03/07/04
-                            // add score to matching word (evy: ignoring case)
-                            if (std::strcmp(iBw, word) == 0)
-                                WordBlockScore[iB]++;
-                        } // all words in this block
-                    }     // any used block
-                }         // for all blocks
-            }             // good word
-            // clear out entire word.
-            //for (int cw=0; cw < 20; cw++)
-            //      word[cw] = '\0';
-            std::memset(word, 0, sizeof(word));
-
-            wc = 0; // reset WC position (start writing 'word[WC]' at 0 again)
-            c++;    // next position in sentence
-            continue; // go to top again.
         }
-        // when we end up here, we are still reading a 'non finishing word' character.
-        // we will fill that in word[wc]. Then add up wc and c, until we find a character
-        // that marks the end of a word again.
-
-        // fill in the word:
-        word[wc] = sentence[c];
-
-        // add up.
-        c++;
-        wc++;
     }
-    // end of loop
 
     // now loop through all blocks and find the one with the most score:
     int iMaxScore = 0;
@@ -263,69 +210,14 @@ void cChatEngine::think() {
 
                                 // chSentence is eventually what the bot will say.
                                 char chSentence[128];
-                                char temp[80];
+                                std::string_view reply_template(ReplyBlock[iTheBlock].sentence[the_c]);
+                                size_t name_pos = reply_template.find("%n");
 
-                                std::memset(chSentence, 0, sizeof(chSentence));
-                                std::memset(temp, 0, sizeof(temp));
-
-                                // get character position
-                                const char* name_pos =
-                                    std::strstr(ReplyBlock[iTheBlock].
-                                        sentence[the_c], "%n");
-
-                                // when name_pos var is found, fill it in.
-                                if (name_pos != nullptr) {
-                                    // when name is in this one:
-                                    int name_offset =
-                                        name_pos -
-                                        ReplyBlock[iTheBlock].sentence[the_c];
-                                    name_offset--;
-
-                                    // copy every character till name_offset
-                                    int nC;
-                                    for (nC = 0; nC < name_offset; nC++) {
-                                        //chSentence[nC] = ReplyBlock[iTheBlock].sentence[the_c][nC];
-                                        temp[nC] =
-                                            ReplyBlock[iTheBlock].
-                                            sentence[the_c][nC];
-                                    }
-
-                                    temp[nC] = ' ';
-
-                                    // copy senders name to chSentence
-                                    std::strcat(temp, sender);
-
-                                    // Skip %n part in ReplyBlock
-                                    nC = name_offset + 3;
-
-                                    // we just copied a name to chSentence
-                                    // set our cursor after the name now (name length + 1)
-                                    int tc = static_cast<int>(std::strlen(temp));
-
-                                    // now finish the sentence
-                                    // get entire length of ReplyBlock and go until we reach the end
-                                    const int length =
-                                        static_cast<int>(std::strlen(ReplyBlock[iTheBlock].
-                                            sentence[the_c]));
-
-
-                                    // for every nC , read character from ReplyBlock
-                                    for (; nC <= length; nC++) {
-                                        // ... and copy it into chSentence
-                                        temp[tc] =
-                                            ReplyBlock[iTheBlock].
-                                            sentence[the_c][nC];
-                                        //char tmsg[80];
-                                        //sprintf(tmsg,"Copying char %c , tc = %d, nC = %d\n", temp[tc], tc, nC);
-                                        //SERVER_PRINT(tmsg);
-
-                                        tc++;       // add up tc.
-                                    }
-
-                                    // terminate
-                                    temp[tc] = '\n';
-
-                                    snprintf(chSentence, sizeof(chSentence), "%s \n", temp);
+                                if (name_pos != std::string_view::npos) {
+                                    std::string final_sentence = std::string(reply_template.substr(0, name_pos));
+                                    final_sentence += sender;
+                                    final_sentence += reply_template.substr(name_pos + 2);
+                                    snprintf(chSentence, sizeof(chSentence), "%s \n", final_sentence.c_str());
                                 }
                                 // when no name pos is found, we just copy the string and say that (works ok)
                                 else {

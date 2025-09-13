@@ -85,7 +85,35 @@ bool traceLine(const Vector& v_source, const Vector& v_dest, const edict_t* pEdi
     return tr.flFraction >= 1.0f;
 }
 
-bool BotCanJumpUp(const cBot* pBot) {
+// Helper function to perform a series of traces (center, left, right)
+bool traceArea(const edict_t* pEdict, const Vector& base_source, const Vector& forward, const Vector& right, const bool check_hit) {
+    TraceResult tr;
+
+    // Center trace
+    if (traceLine(base_source, base_source + forward, pEdict, tr) == check_hit) return false;
+
+    // Left trace
+    Vector left_source = base_source - right * BODY_SIDE_OFFSET;
+    if (traceLine(left_source, left_source + forward, pEdict, tr) == check_hit) return false;
+
+    // Right trace
+    Vector right_source = base_source + right * BODY_SIDE_OFFSET;
+    if (traceLine(right_source, right_source + forward, pEdict, tr) == check_hit) return false;
+
+    return true;
+}
+
+// Helper function to set up vectors for movement checks
+void setupMovementVectors(const edict_t* pEdict, Vector& forward, Vector& right) {
+    Vector angle = pEdict->v.v_angle;
+    angle.x = 0;
+    angle.z = 0;
+    UTIL_MakeVectors(angle);
+    forward = gpGlobals->v_forward;
+    right = gpGlobals->v_right;
+}
+
+bool BotCanJumpUp(cBot *pBot) {
     // What I do here is trace 3 lines straight out, one unit higher than
     // the highest normal jumping distance.  I trace once at the center of
     // the body, once at the right side, and once at the left side.  If all
@@ -97,110 +125,22 @@ bool BotCanJumpUp(const cBot* pBot) {
     // to catch most of the problems with falsely trying to jump on something
     // that the bot can not get onto.
 
-    TraceResult tr;
     const edict_t* pEdict = pBot->pEdict;
+    Vector v_forward, v_right;
+    setupMovementVectors(pEdict, v_forward, v_right);
 
-    // convert current view angle to vectors for TraceLine math...
-
-    Vector v_jump = pEdict->v.v_angle;
-    v_jump.x = 0;                // reset pitch to 0 (level horizontally)
-    v_jump.z = 0;                // reset roll to 0 (straight up and down)
-
-    UTIL_MakeVectors(v_jump);
-
-    // use center of the body first...
-
-    // maximum jump height is 45, so check one unit above that (46)
-    Vector v_source = pEdict->v.origin + Vector(0, 0, -36 + MAX_JUMPHEIGHT);
-    Vector v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at maximum jump height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
+    // Horizontal check at jump height
+    Vector v_source_horizontal = pEdict->v.origin + Vector(0, 0, STAND_VIEW_HEIGHT_OFFSET + MAX_JUMPHEIGHT);
+    if (!traceArea(pEdict, v_source_horizontal, v_forward * FORWARD_CHECK_DISTANCE, v_right, true)) {
         return false;
+    }
 
-    // now check same height to one side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * 16 + Vector(0, 0,
-            -36 + MAX_JUMPHEIGHT);
-    v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at maximum jump height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
+    // Vertical check for head clearance
+    Vector v_source_vertical = pEdict->v.origin + v_forward * FORWARD_CHECK_DISTANCE;
+    v_source_vertical.z += HEAD_CLEARANCE_CHECK_HEIGHT;
+    if (!traceArea(pEdict, v_source_vertical, Vector(0, 0, JUMP_CLEARANCE_CHECK_DROP), v_right, true)) {
         return false;
-
-    // now check same height on the other side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * -16 + Vector(0, 0,
-            -36 + MAX_JUMPHEIGHT);
-    v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at maximum jump height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
-        return false;
-
-    // now trace from head level downward to check for obstructions...
-
-    // start of trace is 24 units in front of bot, 72 units above head...
-    v_source = pEdict->v.origin + gpGlobals->v_forward * 24;
-
-    // offset 72 units from top of head (72 + 36)
-    v_source.z = v_source.z + 108;
-
-    // end point of trace is 99 units straight down from start...
-    // (99 is 108 minus the jump limit height which is 45 - 36 = 9)
-    // fix by stefan, max jump height is 63 , not 45! (using duckjump)
-    // 108 - (63-36) = 81
-    v_dest = v_source + Vector(0, 0, -81);
-
-    // trace a line straight down toward the ground...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
-        return false;
-
-    // now check same height to one side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * 16 +
-        gpGlobals->v_forward * 24;
-    v_source.z = v_source.z + 108;
-    v_dest = v_source + Vector(0, 0, -81);
-
-    // trace a line straight down toward the ground...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
-        return false;
-
-    // now check same height on the other side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * -16 +
-        gpGlobals->v_forward * 24;
-    v_source.z = v_source.z + 108;
-    v_dest = v_source + Vector(0, 0, -81);
-
-    // trace a line straight down toward the ground...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
-        return false;
+    }
 
     return true;
 }
@@ -214,104 +154,22 @@ bool BotCanDuckUnder(cBot* pBot) {
     // sure that there is something blocking the TraceLine.  Then we know
     // we can duck under it.
 
-    TraceResult tr;
     const edict_t* pEdict = pBot->pEdict;
+    Vector v_forward, v_right;
+    setupMovementVectors(pEdict, v_forward, v_right);
 
-    // convert current view angle to vectors for TraceLine math...
-
-    Vector v_duck = pEdict->v.v_angle;
-    v_duck.x = 0;                // reset pitch to 0 (level horizontally)
-    v_duck.z = 0;                // reset roll to 0 (straight up and down)
-
-    UTIL_MakeVectors(v_duck);
-
-    // use center of the body first...
-
-    // duck height is 36, so check one unit above that (37)
-    Vector v_source = pEdict->v.origin + Vector(0, 0, -36 + 37);
-    Vector v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at duck height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
+    // Horizontal check at duck height
+    Vector v_source_horizontal = pEdict->v.origin + Vector(0, 0, DUCK_VIEW_HEIGHT_OFFSET + DUCK_HEIGHT + 1);
+    if (!traceArea(pEdict, v_source_horizontal, v_forward * FORWARD_CHECK_DISTANCE, v_right, true)) {
         return false;
+    }
 
-    // now check same height to one side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * 16 + Vector(0, 0, -36 + 37);
-    v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at duck height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
+    // Vertical check for something to duck under
+    Vector v_source_vertical = pEdict->v.origin + v_forward * FORWARD_CHECK_DISTANCE;
+    v_source_vertical.z += FEET_OFFSET;
+    if (!traceArea(pEdict, v_source_vertical, Vector(0, 0, DUCK_CLEARANCE_CHECK_RISE), v_right, false)) {
         return false;
-
-    // now check same height on the other side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * -16 + Vector(0, 0,
-            -36 + 37);
-    v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at duck height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace hit something, return FALSE
-    if (tr.flFraction < 1.0f)
-        return false;
-
-    // now trace from the ground up to check for object to duck under...
-
-    // start of trace is 24 units in front of bot near ground...
-    v_source = pEdict->v.origin + gpGlobals->v_forward * 24;
-    v_source.z = v_source.z - 35;        // offset to feet + 1 unit up
-
-    // end point of trace is 72 units straight up from start...
-    v_dest = v_source + Vector(0, 0, 72);
-
-    // trace a line straight up in the air...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace didn't hit something, return FALSE
-    if (tr.flFraction >= 1.0f)
-        return false;
-
-    // now check same height to one side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * 16 +
-        gpGlobals->v_forward * 24;
-    v_source.z = v_source.z - 35;        // offset to feet + 1 unit up
-    v_dest = v_source + Vector(0, 0, 72);
-
-    // trace a line straight up in the air...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace didn't hit something, return FALSE
-    if (tr.flFraction >= 1.0f)
-        return false;
-
-    // now check same height on the other side of the bot...
-    v_source =
-        pEdict->v.origin + gpGlobals->v_right * -16 +
-        gpGlobals->v_forward * 24;
-    v_source.z = v_source.z - 35;        // offset to feet + 1 unit up
-    v_dest = v_source + Vector(0, 0, 72);
-
-    // trace a line straight up in the air...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-        pEdict->v.pContainingEntity, &tr);
-
-    // if trace didn't hit something, return FALSE
-    if (tr.flFraction >= 1.0f)
-        return false;
+    }
 
     return true;
 }
@@ -375,37 +233,23 @@ void adjustPathIfBlocked(cBot* pBot) {
     }
 }
 
-bool performTrace(const Vector& v_source, const Vector& v_dest, edict_t* pEntity, TraceResult& tr) {
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters, pEntity, &tr);
-
-    return tr.flFraction >= 1.0f;
-}
-
-bool isPathClear(const cBot* pBot, const Vector& v_dest) {
+void BotNavigate(cBot* pBot) {
     if (!pBot || !pBot->pEdict) {
-        return false; // Invalid input, assume path is not clear
-    }
-    TraceResult tr;
-
-    return performTrace(pBot->pEdict->v.origin, v_dest, pBot->pEdict->v.pContainingEntity, tr);
-}
-
-void BotNavigate(const cBot* pBot) {
-    if (!pBot) {
         return;
     }
 
     // Avoid clustering with other bots
     avoidClustering(pBot);
 
-    // Adjust path if blocked
-    adjustPathIfBlocked(pBot);
-
-    // Check if the path is clear before moving
+    // Check if the path is blocked and adjust angle if necessary
     Vector v_dest = pBot->pEdict->v.origin + gpGlobals->v_forward * MOVE_DISTANCE;
+    if (isPathBlocked(pBot, v_dest)) {
+        adjustBotAngle(pBot, TURN_ANGLE);
+        v_dest = pBot->pEdict->v.origin + gpGlobals->v_forward * MOVE_DISTANCE; // Recalculate destination
+    }
 
+    // If the path is clear, move the bot
     if (!isPathBlocked(pBot, v_dest)) {
-        // Move the bot
         pBot->pEdict->v.origin = v_dest;
     }
 }

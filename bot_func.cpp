@@ -35,6 +35,7 @@
 #include <dllapi.h>
 #include <meta_api.h>
 #include <entity_state.h>
+#include <string>
 
 #include "bot.h"
 #include "game.h"
@@ -68,26 +69,17 @@ bool VectorIsVisibleWithEdict(edict_t *pEdict, const Vector& dest, const char *c
     // When our check string is not "none" and the traceline has a hit...
     if (std::strcmp("none", checkname) != 0 && tr.flFraction < 1.0f) {
         // Check if the blocking entity is same as checkname..
-        char entity_blocker[128];
-        const edict_t *pent = tr.pHit;  // Ok now retrieve the entity
-        std::strcpy(entity_blocker, STRING(pent->v.classname));        // the classname
+        const edict_t* pent = tr.pHit;  // Ok now retrieve the entity
+        const std::string entity_blocker = STRING(pent->v.classname);        // the classname
 
-        if (std::strcmp(entity_blocker, checkname) == 0)
+        if (entity_blocker == checkname)
             return true;           // We are blocked by our string, this means its ok.
-        else {
-            return false;          // We are blocked, but by something differernt then 'checkname' its not ok
-        }
 
-    } else {
-        // check if line of sight to object is not blocked (i.e. visible)
-        if (tr.flFraction >= 1.0f)
-            return true;
-        else
-            return false;
+        return false;          // We are blocked, but by something differernt then 'checkname' its not ok
     }
 
-    //return false;
-
+    // check if line of sight to object is not blocked (i.e. visible)
+    return tr.flFraction >= 1.0f;
 }
 
 bool VectorIsVisible(const Vector& start, const Vector& dest, const char *checkname) {
@@ -99,33 +91,23 @@ bool VectorIsVisible(const Vector& start, const Vector& dest, const char *checkn
     // Als we geblokt worden EN we checken voor een naam
     if (std::strcmp("none", checkname) != 0 && tr.flFraction < 1.0f) {
         // Check if the blocking entity is same as checkname..
-        char entity_blocker[128];
-        const edict_t *pent = tr.pHit;  // Ok now retrieve the entity
-        std::strcpy(entity_blocker, STRING(pent->v.classname));        // the classname
+        const edict_t* pent = tr.pHit;  // Ok now retrieve the entity
+        const std::string entity_blocker = STRING(pent->v.classname);        // the classname
 
-        if (std::strcmp(entity_blocker, checkname) == 0)
+        if (entity_blocker == checkname)
             return false;          // We worden geblokt door die naam..
-        else
-            return true;           // We worden NIET geblokt door die naam (dus we worden niet geblokt).
 
-    } else {
-        // check if line of sight to object is not blocked (i.e. visible)
-        // Als er NONE wordt opgegeven dan checken we gewoon of we worden geblokt
-        if (tr.flFraction >= 1.0f)
-            return true;
-        else
-            return false;
-
+        return true;           // We worden NIET geblokt door die naam (dus we worden niet geblokt).
     }
 
+    // check if line of sight to object is not blocked (i.e. visible)
+    // Als er NONE wordt opgegeven dan checken we gewoon of we worden geblokt
+    return tr.flFraction >= 1.0f;
 }
 
-float func_distance(Vector v1, Vector v2) {
+float func_distance(const Vector& v1, const Vector& v2) {
     // Returns distance between 2 vectors
-    if (v1 && v2)
-        return (v1 - v2).Length();
-    else
-        return 0.0f;
+    return (v1 - v2).Length();
 }
 
 /**
@@ -511,57 +493,13 @@ Vector FUNC_CalculateAngles(const cBot* pBot) {
 }
 
 bool BotShouldDuck(cBot *pBot) {
-    // temp
-    // TODO: Deal with this, is it good code? remove the other stuff below the return statement?
-
     if (pBot->iDuckTries > 3) {
         // tried to duck 3 times, so no longer!
         pBot->rprint_trace("BotShouldDuck", "Returning false because ducked too many times.");
         return false;
     }
-	
-    //return BotCanDuckUnder(pBot);  //Makes the code underneath unreachable? [APG]RoboCop[CL]
 
-    // When a bot should jump, something is blocking his way.
-    // Most of the time it is a fence, or a 'half wall' that reaches from body to feet
-    // However, the body most of the time traces above this wall.
-    // What i do:
-    // Trace line from head
-    // When head blocked and waist is free, then we should duck...
-
-    TraceResult tr;
-    const edict_t *pEdict = pBot->pEdict;
-
-    // convert current view angle to vectors for TraceLine math...
-
-    Vector v_duck = FUNC_CalculateAngles(pBot);
-    v_duck.x = 0;                // reset pitch to 0 (level horizontally)
-    v_duck.z = 0;                // reset roll to 0 (straight up and down)
-
-    UTIL_MakeVectors(v_duck);
-
-    // Check if head is blocked
-    Vector v_source = pEdict->v.origin + Vector(0, 0, +37);
-    Vector v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at maximum jump height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-                   pEdict->v.pContainingEntity, &tr);
-
-    if (tr.flFraction >= 1.0f)
-        return false;
-
-    v_source = pEdict->v.origin;
-    v_dest = v_source + gpGlobals->v_forward * 24;
-
-    // trace a line forward at maximum jump height...
-    UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters,
-                   pEdict->v.pContainingEntity, &tr);
-
-    if (tr.flFraction < 1.0f)
-        return false;
-
-    return true;
+    return BotCanDuckUnder(pBot);
 }
 
 bool BotShouldDuckJump(cBot* pBot) //Experimental DuckJump Incomplete [APG]RoboCop[CL]
@@ -657,30 +595,31 @@ bool FUNC_PlayerRuns(const int speed) {
 // return weapon type of edict.
 // only when 'important enough'.
 int FUNC_EdictHoldsWeapon(const edict_t *pEdict) {
+    const std::string weaponModel = STRING(pEdict->v.weaponmodel);
     // sniper guns
-    //if (strcmp("models/p_awp.mdl", STRING(pEdict->v.weaponmodel)) == 0) //Excluded for high prices and accuracy [APG]RoboCop[CL]
+    //if (weaponModel == "models/p_awp.mdl") //Excluded for high prices and accuracy [APG]RoboCop[CL]
     //    return CS_WEAPON_AWP;
-    if (std::strcmp("models/p_scout.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_scout.mdl")
         return CS_WEAPON_SCOUT;
 
     // good weapons (ak, m4a1, mp5)
-    if (std::strcmp("models/p_ak47.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_ak47.mdl")
         return CS_WEAPON_AK47;
-    if (std::strcmp("models/p_m4a1.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_m4a1.mdl")
         return CS_WEAPON_M4A1;
-    if (std::strcmp("models/p_mp5navy.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_mp5navy.mdl")
         return CS_WEAPON_MP5NAVY;
 
     // grenade types
-    if (std::strcmp("models/p_smokegrenade.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_smokegrenade.mdl")
         return CS_WEAPON_SMOKEGRENADE;
-    if (std::strcmp("models/p_hegrenade.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_hegrenade.mdl")
         return CS_WEAPON_HEGRENADE;
-    if (std::strcmp("models/p_flashbang.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    if (weaponModel == "models/p_flashbang.mdl")
         return CS_WEAPON_FLASHBANG;
 
     // shield types //Most CS Veterans dislikes the shield [APG]RoboCop[CL]
-    //if (strcmp("models/p_shield.mdl", STRING(pEdict->v.weaponmodel)) == 0)
+    //if (weaponModel == "models/p_shield.mdl")
     //    return CS_WEAPON_SHIELD;
 
     // unknown
@@ -1057,86 +996,71 @@ bool isHostageRescued(cBot* pBot, const edict_t* pHostage) //pBot not used [APG]
 
 int FUNC_GiveHostage(cBot* pBot) //Experimental [APG]RoboCop[CL]
 {
-	if (pBot->isTerrorist()) {
-		return 0;
-	}
+    if (pBot->isTerrorist()) {
+        return 0;
+    }
 
-	// find a hostage to rescue
-	edict_t *pHostage = pBot->getHostageToRescue();
+    // find a hostage to rescue
+    edict_t* pHostage = pBot->getHostageToRescue();
 
-	if (pHostage == nullptr) {
-		pHostage = pBot->findHostageToRescue();
-	}
+    if (pHostage == nullptr) {
+        pHostage = pBot->findHostageToRescue();
+    }
 
-	// still NULL
-	if (pHostage == nullptr) {
-		// Note: this means a hostage that is near and visible and rescueable etc.
-		return 0; // nothing to do yet
-	}
+    // still NULL
+    if (pHostage == nullptr) {
+        // Note: this means a hostage that is near and visible and rescueable etc.
+        return 0; // nothing to do yet
+    }
 
-	// Whenever we have a hostage to go after, verify it is still rescueable
-	const bool isRescueable = isHostageRescueable(pBot, pHostage);
+    // Whenever we have a hostage to go after, verify it is still rescueable
+    const bool isRescueable = isHostageRescueable(pBot, pHostage);
 
-	if (!isRescueable) {
-		pBot->rprint_trace("GiveHostage", "Hostage found, but not rescueable, forgetting...");
-		pBot->forgetHostage(pHostage);
-		return 0;
-	}
-	pBot->rprint_trace("GiveHostage", "Remembering hostage (target) to rescue");
-	pBot->rememberWhichHostageToRescue(pHostage);
+    if (!isRescueable) {
+        pBot->rprint_trace("GiveHostage", "Hostage found, but not rescueable, forgetting...");
+        pBot->forgetHostage(pHostage);
+        return 0;
+    }
+    pBot->rprint_trace("GiveHostage", "Remembering hostage (target) to rescue");
+    pBot->rememberWhichHostageToRescue(pHostage);
 
-	// Prevent bots getting to close here
-	const float distanceToHostage = func_distance(pBot->pEdict->v.origin, pHostage->v.origin);
+    // Prevent bots getting to close here
+    const float distanceToHostage = func_distance(pBot->pEdict->v.origin, pHostage->v.origin);
 
-	// From here, we should get the hostage when still visible
+    // From here, we should get the hostage when still visible
     if (pBot->canSeeEntity(pHostage))
     {
-	    pBot->rprint_trace("GiveHostage", "I can see the hostage to rescue!");
-    	// set body to hostage!
-    	pBot->vBody = pBot->vHead = pHostage->v.origin + Vector(0, 0, 36);
-    	// by default run
-    	pBot->setMoveSpeed(pBot->f_max_speed);
+        pBot->rprint_trace("GiveHostage", "I can see the hostage to rescue!");
+        // set body to hostage!
+        pBot->vBody = pBot->vHead = pHostage->v.origin + Vector(0, 0, 36);
+        // by default run
+        pBot->setMoveSpeed(pBot->f_max_speed);
 
-    	if (distanceToHostage <= 80.0f)
-    	{
-    		pBot->rprint_trace("GiveHostage", "I can see hostage AND really close!");
-    		pBot->setMoveSpeed(0.0f); // too close, do not move
-    	}
-    }
-	return 1; //gives any hostage we still have to go for
-}
-
-bool isHostageRescueable(cBot *pBot, edict_t *pHostage) {
-    if (pHostage == nullptr) return false;
-//    pBot->rprint("isHostageRescueable");
-
-    // Already rescued?
-    if (isHostageRescued(pBot, pHostage)) {
-        return false;
-    }
-
-    // dead
-    if (!FUNC_EdictIsAlive(pHostage)) {
-        return false;
-    }
-
-    // Already moving? (used by human player?)
-    if (FUNC_PlayerSpeed(pHostage) > 2) {
-        return false;
-    }
-    // Already used by bot?
-
-    if (pBot != nullptr) {
-    	// rblog("isHostageRescueable - pBot is != NULL\n");
-        if (pBot->isUsingHostage(pHostage)) return false;
-        // Is the hostage not used by *any other* bot?
-        if (!isHostageFree(pBot, pHostage)) {
-            rblog("isHostageRescueable - Hostage is not free");
-            return false;
+        if (distanceToHostage <= 80.0f)
+        {
+            pBot->rprint_trace("GiveHostage", "I can see hostage AND really close!");
+            pBot->setMoveSpeed(0.0f); // too close, do not move
         }
     }
+    return 1; //gives any hostage we still have to go for
+}
 
-    // yes we can rescue this hostage
+bool isHostageRescueable(cBot* pBot, edict_t* pHostage) {
+    if (pHostage == nullptr || pBot == nullptr) {
+        return false;
+    }
+
+    // A hostage is not rescueable if it has already been rescued, is dead,
+    // is already being moved by a human player, or is being rescued by another bot.
+    if (isHostageRescued(pBot, pHostage) ||
+        !FUNC_EdictIsAlive(pHostage) ||
+        FUNC_PlayerSpeed(pHostage) > 2 ||
+        pBot->isUsingHostage(pHostage) ||
+        !isHostageFree(pBot, pHostage)) {
+        return false;
+    }
+
+    // If all checks pass, the hostage is rescueable
     return true;
 }
 

@@ -476,7 +476,7 @@ public:
     // -------------------
 	
     bool hasEnemy() const;
-    bool hasEnemy(const edict_t * pEdict) const;
+    bool hasEnemy(const edict_t * pEntity) const;
     edict_t * getEnemyEdict() const;
 
     bool hasGoal() const;
@@ -583,6 +583,8 @@ public:
     bool isFreezeTime() const;
 
     void rememberEnemyFound();
+private:
+    float DetermineStrafe(bool bHitForwardLeft, bool bHitForwardRight, bool bHitLeft, bool bHitRight);
 };
 
 // new UTIL.CPP functions...

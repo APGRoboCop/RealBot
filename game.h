@@ -69,86 +69,86 @@ void REALBOT_PRINT(const char* Function, const char* msg);
 
 class cGame {
 public:
-   void Init();
-   void InitNewRound();
+	void Init();
+	void InitNewRound();
 
-   // ---------------------
-   void LoadNames();
-   static void LoadCFG();
-   static void LoadBuyTable();
+	// ---------------------
+	void LoadNames();
+	static void LoadCFG();
+	static void LoadBuyTable();
 
-   // ---------------------
-   void SelectName(char *name) const;
-   bool NamesAvailable() const;
-   void SetPlayingRounds(int iMin, int iMax);
-   void SetNewRound(bool bState);
-   void resetRoundTime();
-   void SetRoundTime(float fTime);
-   static void DetermineMapGoal();
+	// ---------------------
+	std::string SelectName() const;
+	bool NamesAvailable() const;
+	void SetPlayingRounds(int iMin, int iMax);
+	void SetNewRound(bool bState);
+	void resetRoundTime();
+	void SetRoundTime(float fTime);
+	static void DetermineMapGoal();
 
-   // ---------------------
-   char *RandomSentence();
+	// ---------------------
+	const char* RandomSentence() const;
 
-   // ---------------------
-   int GetMinPlayRounds() const;
-   int GetMaxPlayRounds() const;
+	// ---------------------
+	int GetMinPlayRounds() const;
+	int GetMaxPlayRounds() const;
 
-   bool NewRound() const;             // New round?
-   float getRoundStartedTime() const;           // When did the round start? (time)
-   float getRoundTimeElapsed() const;           // difference between now and round started time
+	bool NewRound() const;             // New round?
+	float getRoundStartedTime() const;           // When did the round start? (time)
+	float getRoundTimeElapsed() const;           // difference between now and round started time
 
-   int createBot(edict_t * pPlayer, const char *teamArg, const char *skillArg,
-                 const char *modelArg, const char *nameArg) const;
+	int createBot(edict_t* pPlayer, const char* teamArg, const char* skillArg,
+		const char* modelArg, const char* nameArg) const;
 
-   // ---------------------
-   void UpdateGameStatus();     // Updates global game variables
-   bool isC4Dropped() const;
-   bool isPlantedC4Discovered() const;
+	// ---------------------
+	void UpdateGameStatus();     // Updates global game variables
+	bool isC4Dropped() const;
+	bool isPlantedC4Discovered() const;
 
-   // ---------------------
-   // public variables
-   int iDefaultBotSkill;
-   int iRandomMinSkill;
-   int iRandomMaxSkill;
-   int iOverrideBotSkill;       // Override "game botskill" with personality skill?
-   float fWalkWithKnife;        // May bots walk with knife
+	// ---------------------
+	// public variables
+	int iDefaultBotSkill;
+	int iRandomMinSkill;
+	int iRandomMaxSkill;
+	int iOverrideBotSkill;       // Override "game botskill" with personality skill?
+	float fWalkWithKnife;        // May bots walk with knife
 
-   // Game related variables:
-   Vector vDroppedC4;           // Dropped C4?
-   bool bBombPlanted;           // Bomb planted?
-   bool bHostageRescueMap;      // Hostage rescue map? (CS_...)
-   bool bHostageRescueZoneFound; // Is any rescue zone found? (CS_...)
-   bool bBombPlantMap;          // Bomb plant map? (DE_...)
-   Vector vPlantedC4;           // Is the bomb discovered?
+	// Game related variables:
+	Vector vDroppedC4;           // Dropped C4?
+	bool bBombPlanted;           // Bomb planted?
+	bool bHostageRescueMap;      // Hostage rescue map? (CS_...)
+	bool bHostageRescueZoneFound; // Is any rescue zone found? (CS_...)
+	bool bBombPlantMap;          // Bomb plant map? (DE_...)
+	Vector vPlantedC4;           // Is the bomb discovered?
 
-   // Server vars
-   int iVersionBroadcasting;    // 0 = every round , 1 = every new map
-   int iKillsBroadcasting;      // 0 = full, 1 = min, 2 = none
-   int iDeathsBroadcasting;     // 0 = full, 1 = min, 2 = none
-   bool bInstalledCorrectly;    // false = RB is not in the correct directory
-   bool bSpeechBroadcasting;    // true/false
+	// Server vars
+	int iVersionBroadcasting;    // 0 = every round , 1 = every new map
+	int iKillsBroadcasting;      // 0 = full, 1 = min, 2 = none
+	int iDeathsBroadcasting;     // 0 = full, 1 = min, 2 = none
+	bool bInstalledCorrectly;    // false = RB is not in the correct directory
+	bool bSpeechBroadcasting;    // true/false
 
-   // DEBUG variables
-   bool bDoNotShoot;            // Bots not shooting
-   int  bDebug;                 // Print debug messages (if > -1, it prints messages for bot index...)
-   int  messageVerbosity;       // Print debug messages (verbosity)
-   bool bEngineDebug;           // Print engine debug messages
-   bool bPistols;               // 30/07/04 by Josh: bots will only use pistols
+	// DEBUG variables
+	bool bDoNotShoot;            // Bots not shooting
+	int  bDebug;                 // Print debug messages (if > -1, it prints messages for bot index...)
+	int  messageVerbosity;       // Print debug messages (verbosity)
+	bool bEngineDebug;           // Print engine debug messages
+	bool bPistols;               // 30/07/04 by Josh: bots will only use pistols
 
-   // ChatEngine related
-   int iMaxSentences;           // how many sentences may there be at max?
-   int iProducedSentences;
+	// ChatEngine related
+	int iMaxSentences;           // how many sentences may there be at max?
+	int iProducedSentences;
 
 private:
-   // ---------------------
-   // private variables
-   char cSpeechSentences[16][80] = {};
-   int iAmountNames = 0;
-   char cBotNames[MAX_BOT_NAMES][BOT_NAME_LEN + 1] = {};
-   int iMinPlayRounds = 0, iMaxPlayRounds = 0;  // Min/Max playable rounds
-   bool bNewRound = false;              // New round triggered?
-   float fRoundTime = 0.0f;            // Round time
-   float fUpdateGoalTimer = 0.0f;
+	// ---------------------
+	// private variables
+	std::array<std::string, 16> cSpeechSentences;
+	int iAmountNames = 0;
+	std::vector<std::string> cBotNames;
+	int iMinPlayRounds = 0, iMaxPlayRounds = 0;  // Min/Max playable rounds
+	bool bNewRound = false;              // New round triggered?
+	float fRoundTime = 0.0f;            // Round time
+	float fUpdateGoalTimer = 0.0f;
 };
 
 #endif // GAME_H

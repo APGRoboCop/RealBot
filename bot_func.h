@@ -119,6 +119,12 @@ bool GoodWeaponForTeam(int weapon, int team);
 
 void BotConsole(cBot* pBot);
 void BotDecideWhatToBuy(cBot* pBot);
+
+// Buying sub-functions
+int BotBuyPrimaryWeapon(cBot* pBot);
+int BotBuySecondaryWeapon(cBot* pBot);
+int BotBuyEquipment(cBot* pBot);
+
 void rblog(const char* txt);
 
 // bot.cpp

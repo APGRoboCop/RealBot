@@ -33,6 +33,8 @@
 #include <extdll.h>
 #include <dllapi.h>
 #include <meta_api.h>
+#include <string_view>
+
 
 #include "bot.h"
 #include "bot_client.h"
@@ -388,6 +390,13 @@ void pfnWriteCoord(float flValue) {
 }
 
 void pfnWriteString(const char *sz) {
+    if (sz == nullptr)
+    {
+        if (Game.bEngineDebug)
+            rblog("ENGINE: pfnWriteString() - sz is null\n");
+        RETURN_META(MRES_IGNORED);
+    }
+
     if (Game.bEngineDebug) {
         char msg[256];
         snprintf(msg, sizeof(msg), "ENGINE: pfnWriteByte() - '%s'\n", sz);
@@ -396,123 +405,50 @@ void pfnWriteString(const char *sz) {
 
     if (gpGlobals->deathmatch) {
         // Ditlew's Radio
-        if (sz != nullptr && std::strstr(sz, "(RADIO):") != nullptr && !radio_message) {
-            // We found an old radio message, we should convert the strings...
-            radio_message = true;  // we found a radio message
+        std::string_view sz_sv(sz);
+        if (sz_sv.find("(RADIO):") != std::string_view::npos && !radio_message) {
+            radio_message = true;
 
-            // Thank god Ditlew you already coded this...
-            const char* radio_ptr = std::strstr(sz, " (RADIO)");
-            if (radio_ptr != nullptr) {
-                const unsigned length = std::strlen(sz) - std::strlen(radio_ptr);
-                std::strncpy(radio_messenger, sz, length);
+            if (size_t radio_ptr_pos = sz_sv.find(" (RADIO)"); radio_ptr_pos != std::string_view::npos) {
+                std::string_view messenger_sv = sz_sv.substr(0, radio_ptr_pos);
+                strncpy(radio_messenger, messenger_sv.data(), messenger_sv.length());
+                radio_messenger[messenger_sv.length()] = '\0';
             }
 
-            // Now search for any compatible radio command (old string).
-            // if found then convert the message in the new way so the code
-            // thinks its CS 1.1 and thus every version lower then CS 1.1 should work too...
-            if (std::strstr(sz, "Follow Me") != nullptr) {
-                std::strcpy(message, "#Follow me");
+            if (sz_sv.find("Follow Me") != std::string_view::npos) {
+                strcpy(message, "#Follow me");
             }
-            else if (std::strstr(sz, "You Take the Point") != nullptr) {
-                std::strcpy(message, "#You_take_the_point");
+            else if (sz_sv.find("You Take the Point") != std::string_view::npos) {
+                strcpy(message, "#You_take_the_point");
             }
-            else if (std::strstr(sz, "Need backup") != nullptr) {
-                std::strcpy(message, "#Need_backup");
+            else if (sz_sv.find("Need backup") != std::string_view::npos) {
+                strcpy(message, "#Need_backup");
             }
-            else if (std::strstr(sz, "Enemy spotted") != nullptr) {
-                std::strcpy(message, "#Enemy_spotted");
+            else if (sz_sv.find("Enemy spotted") != std::string_view::npos) {
+                strcpy(message, "#Enemy_spotted");
             }
-            else if (std::strstr(sz, "Taking Fire.. Need Assistance!") != nullptr) {
-                std::strcpy(message, "#Taking_fire");
+            else if (sz_sv.find("Taking Fire.. Need Assistance!") != std::string_view::npos) {
+                strcpy(message, "#Taking_fire");
             }
-            else if (std::strstr(sz, "Team, fall back!") != nullptr) {
-                std::strcpy(message, "#Team_fall_back");
+            else if (sz_sv.find("Team, fall back!") != std::string_view::npos) {
+                strcpy(message, "#Team_fall_back");
             }
-            else if (std::strstr(sz, "Go go go") != nullptr) {
-                std::strcpy(message, "#Go_go_go");
+            else if (sz_sv.find("Go go go") != std::string_view::npos) {
+                strcpy(message, "#Go_go_go");
             }
         }
-        /*
-           else
-           {
 
-           // normal text message
-           if (strstr(sz, " : "))
-           {
-
-           // Get sender
-           // Thank god Ditlew you already coded this...
-           int length = strlen (sz) - strlen (strstr (sz, " : "));
-
-           char messenger[30];
-           char chMessage[80];
-           for (int clear=0; clear < 80; clear ++)
-           {
-           if (clear < 30)
-           messenger[clear]='\0';
-
-           chMessage[clear]='\0';
-           }
-
-           // Find the sender (old fasioned way)
-           int iM=0;
-           bool SkippedFirst=false;
-           for (int scan=1; scan < 80; scan++)
-           {
-           if (sz[scan] == ':')
-           {
-           // now cut one from the messenger
-           //messenger[iM] = '\0';
-           length=scan-1;
-           scan++;
-           break;
-           }
-           else if (sz[scan] != ' ' && SkippedFirst)
-           {
-           //messenger[iM] = sz[scan];
-           iM++;
-           }
-           else if (sz[scan] == ' ')
-           {
-           if(SkippedFirst==false)
-           SkippedFirst=true;
-           else
-           {
-           // messenger[iM] = sz[scan];
-           iM++;
-           }
-           }
-           }
-
-           strncpy (messenger, sz, length);
-           SERVER_PRINT("MESSENGER:");
-           SERVER_PRINT(messenger);
-
-
-
-           // Everything else is just the sentence:
-           int chM=0;
-           for (scan; scan < 80; scan++)
-           {
-           chMessage[chM] = sz[scan];
-           chM++;
-           }
-
-
-           ChatEngine.set_sentence(messenger, chMessage);
-
-           }
-           }
-         */
         if (radio_message_start) {
             std::strcpy(radio_messenger, sz);
             radio_message_start = false;
             radio_message_from = true;
-        } else if (radio_message_from) {
-            std::strcpy(message, sz);   // copy message and handle at bot.cpp radio routine.
+        }
+        else if (radio_message_from) {
+            std::strcpy(message, sz);
             radio_message = true;
             radio_message_from = false;
-        } else if (std::strcmp(sz, "#Game_radio") == 0) {
+        }
+        else if (sz_sv == "#Game_radio") {
             radio_message_start = true;
         }
 

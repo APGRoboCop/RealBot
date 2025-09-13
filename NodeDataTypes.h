@@ -35,6 +35,7 @@
 #ifndef NODEDATATYPES_H
 #define NODEDATATYPES_H
 
+#include <array>
 #include <cstdint>
 
 // player sizes for path_connection_walkable
@@ -230,7 +231,7 @@ tTrouble;
 // Node (stored in RBN file, do not change casually)
 typedef struct {
 	Vector origin;                   // Node origin
-	int iNeighbour[MAX_NEIGHBOURS];  // Reachable nodes for this node
+	std::array<int, MAX_NEIGHBOURS> iNeighbour;  // Reachable nodes for this node
 	int iNodeBits;
 	int index;
 }

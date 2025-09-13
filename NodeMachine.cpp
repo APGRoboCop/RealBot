@@ -45,6 +45,7 @@
 
 // malloc stuff?
 #include <cstdlib>
+#include <vector>
 // ---
 
 #include "bot.h"
@@ -86,9 +87,9 @@ int cNodeMachine::GetVisibilityFromTo(const int iFrom, const int iTo) const {
 
     // Optional assertion
     assert(iByte < g_iMaxVisibilityByte);
-    const unsigned char* ToReturn = cVisTable + iByte;
+    const unsigned char ToReturn = cVisTable[iByte];
 
-    return (*ToReturn & (1 << iBit)) ? VIS_VISIBLE : VIS_BLOCKED;
+    return (ToReturn & (1 << iBit)) ? VIS_VISIBLE : VIS_BLOCKED;
 }
 
 void cNodeMachine::SetVisibilityFromTo(const int iFrom, const int iTo, const bool bVisible) {
@@ -106,27 +107,22 @@ void cNodeMachine::SetVisibilityFromTo(const int iFrom, const int iTo, const boo
 
     // Optional assertion
     assert(iByte < g_iMaxVisibilityByte);
-    unsigned char* ToChange = cVisTable + iByte;
+    unsigned char& ToChange = cVisTable[iByte];
     if (bVisible) {
-        *ToChange |= (1 << iBit);
+        ToChange |= (1 << iBit);
     }
     else {
-        *ToChange &= ~(1 << iBit);
+        ToChange &= ~(1 << iBit);
     }
 }
 
 void cNodeMachine::ClearVisibilityTable()
 {
-    if (cVisTable) {
-        std::memset(cVisTable, 0, g_iMaxVisibilityByte);
-    }
+    std::fill(cVisTable.begin(), cVisTable.end(), 0);
 }
 
 void cNodeMachine::FreeVisibilityTable() {
-    if (cVisTable) {
-        free(cVisTable);
-        cVisTable = nullptr;
-    }
+    cVisTable.clear();
 }
 
 //---------------------------------------------------------
@@ -137,6 +133,7 @@ void cNodeMachine::init() {
     iMaxUsedNodes = 0;
 
     initNodes();
+    initInfoNodes();
     initTroubles();
     initGoals();
     initPaths();
@@ -147,10 +144,22 @@ void cNodeMachine::init() {
 }
 
 void cNodeMachine::initNodes() {
+    int currentIndex = 0;
     for (tNode& node : Nodes) {
-        initializeNode(node);
+        node.origin = INVALID_VECTOR;
+        std::fill(node.iNeighbour.begin(), node.iNeighbour.end(), -1);
+        node.iNodeBits = 0;
+        node.index = currentIndex++;
     }
 }
+
+void cNodeMachine::initInfoNodes() {
+    for (tInfoNode& infoNode : InfoNodes) {
+        std::fill(std::begin(infoNode.fDanger), std::end(infoNode.fDanger), 0.0f);
+        std::fill(std::begin(infoNode.fContact), std::end(infoNode.fContact), 0.0f);
+    }
+}
+
 void cNodeMachine::initializeNode(tNode& node) {
     node.origin = INVALID_VECTOR;
     std::fill(std::begin(node.iNeighbour), std::end(node.iNeighbour), -1);
@@ -179,14 +188,7 @@ void cNodeMachine::initVisTable() {
     constexpr unsigned long iSize = g_iMaxVisibilityByte;
 
     //create a heap type thing...
-    FreeVisibilityTable();       // 16/07/04 - free it first
-    cVisTable = static_cast<unsigned char*>(malloc(iSize));
-    if (cVisTable != nullptr) {
-        std::memset(cVisTable, 0, iSize);
-    }
-    else {
-        rblog("cNodeMachine::init() - ERROR: Could not allocate memory for visibility table\n");
-    }
+    cVisTable.resize(iSize);
     ClearVisibilityTable();
 }
 
@@ -217,27 +219,18 @@ void cNodeMachine::initGoal(const int g) {
 
 int cNodeMachine::GetTroubleIndexForConnection(int iFrom, int iTo) const
 {
-	//    sprintf(msg, "GetTroubleIndexForConnection | from %d to %d\n", iFrom, iTo);
-	//    rblog(msg);
-    // in case of invalid values, return -1 - no need to loop
-    if (iFrom < -1 || iFrom >= MAX_NODES) {
-        rblog("GetTroubleIndexForConnection | invalid iFrom\n");
-        return -1;
-    }
-    if (iTo < -1 || iTo >= MAX_NODES) {
-        rblog("GetTroubleIndexForConnection | invalid iTo\n");
+    if (iFrom < 0 || iFrom >= MAX_NODES || iTo < 0 || iTo >= MAX_NODES) {
         return -1;
     }
 
-    for (int index = 0; index < MAX_TROUBLE; index++) {
-        if (Troubles[index].iFrom == iFrom &&
-            Troubles[index].iTo == iTo) {
-	        char msg[255] = {};
-	        snprintf(msg, sizeof(msg), "GetTroubleIndexForConnection | Found index [%d] for from %d to %d\n", index, iFrom, iTo);
-            rblog(msg);
-            // found troubled connection, return its index
-            return index;
-        }
+    const tTrouble* it = std::find_if(std::begin(Troubles), std::end(Troubles),
+                                      [iFrom, iTo](const tTrouble& trouble)
+                                      {
+	                                      return trouble.iFrom == iFrom && trouble.iTo == iTo;
+                                      });
+
+    if (it != std::end(Troubles)) {
+        return std::distance(std::begin(Troubles), it);
     }
 
     return -1;
@@ -1105,7 +1098,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
         bool bNeighbourWater = false;
 
         // when pEntity is on ladder, it is NOT floating!
-        if (FUNC_IsOnLadder(pEntity))
+        if (pEntity && FUNC_IsOnLadder(pEntity))
             bNeighbourFloats = false;
 
         if (Nodes[nodeIndex].iNodeBits & BIT_LADDER)
@@ -1164,7 +1157,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
 
         int hull_type = head_hull;
 
-        if (FUNC_IsOnLadder(pEntity)) {
+        if (pEntity && FUNC_IsOnLadder(pEntity)) {
             hull_type = point_hull;
         } else {
             // falling
@@ -1188,7 +1181,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
 
         // trace
         UTIL_TraceHull(Nodes[currentIndex].origin, Nodes[nodeIndex].origin, ignore_monsters,
-			hull_type, pEntity->v.pContainingEntity, &tr);
+            hull_type, pEntity ? pEntity->v.pContainingEntity : nullptr, &tr);
 
         // if nothing hit:
         if (tr.flFraction >= 1.0f) {
@@ -1287,7 +1280,6 @@ void cNodeMachine::addNodesForPlayers() {
 
         // skip invalid (dead, not playing) players
         if (pPlayer && !pPlayer->free) {
-            if (pPlayer->free) continue;
             if (!IsAlive(pPlayer)) continue;
 
             const int iPlayerIndex = index - 1;
@@ -1487,20 +1479,10 @@ void cNodeMachine::experience_save() {
         constexpr int iVersion = FILE_EXP_VER2;
         std::fwrite(&iVersion, sizeof(int), 1, rbl);
 
-        struct Node {
-            Vector fDanger[2];
-            Vector fContact[2];
-        };
-
-	    //TODO: To resolve the overflow of the buffer issue [APG]RoboCop[CL]
-        for (int i = 0; i < MAX_NODES; i++) {
-	        Node localInfoNodes[MAX_NODES];
-
-	        std::fwrite(&localInfoNodes[i].fDanger[0], sizeof(Vector), 1, rbl);
-            std::fwrite(&localInfoNodes[i].fDanger[1], sizeof(Vector), 1, rbl);
-        	
-            std::fwrite(&localInfoNodes[i].fContact[0], sizeof(Vector), 1, rbl);
-            std::fwrite(&localInfoNodes[i].fContact[1], sizeof(Vector), 1, rbl);
+        // Write the InfoNodes data directly using the correct struct
+        for (tInfoNode& InfoNode : InfoNodes)
+        {
+            std::fwrite(&InfoNode, sizeof(tInfoNode), 1, rbl);
         }
 
         if (iMaxUsedNodes > MAX_NODES)
@@ -1566,20 +1548,9 @@ void cNodeMachine::experience_load() {
         int iVersion = FILE_EXP_VER1;
         std::fread(&iVersion, sizeof(int), 1, rbl);
 
-        struct Node {
-            Vector fDanger[2];
-            Vector fContact[2];
-        };
-        Node localInfoNodes[MAX_NODES];
-
         if (iVersion == FILE_EXP_VER1) {
-
-            //TODO: To resolve the overflow of the buffer issue [APG]RoboCop[CL]
             for (i = 0; i < MAX_NODES; i++) {
-                std::fread(&localInfoNodes[i].fDanger[0], sizeof(Vector), 1, rbl);
-                std::fread(&localInfoNodes[i].fDanger[1], sizeof(Vector), 1, rbl);
-                std::fread(&localInfoNodes[i].fContact[0], sizeof(Vector), 1, rbl);
-                std::fread(&localInfoNodes[i].fContact[1], sizeof(Vector), 1, rbl);
+                std::fread(&InfoNodes[i], sizeof(tInfoNode), 1, rbl);
             }
 
             std::fread(&iMaxUsedNodes, sizeof(int), 1, rbl);
@@ -1591,16 +1562,12 @@ void cNodeMachine::experience_load() {
             const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
 
             // Read table from what we know
-            std::fread(cVisTable, iSize, 1, rbl);
+            std::fread(cVisTable.data(), iSize, 1, rbl);
             std::fread(iVisChecked, sizeof(iVisChecked), 1, rbl);
         }
         else if (iVersion == FILE_EXP_VER2) {
-            //TODO: To resolve the overflow of the buffer issue [APG]RoboCop[CL]
             for (i = 0; i < MAX_NODES; i++) {
-                std::fread(&localInfoNodes[i].fDanger[0], sizeof(Vector), 1, rbl);
-                std::fread(&localInfoNodes[i].fDanger[1], sizeof(Vector), 1, rbl);
-                std::fread(&localInfoNodes[i].fContact[0], sizeof(Vector), 1, rbl);
-                std::fread(&localInfoNodes[i].fContact[1], sizeof(Vector), 1, rbl);
+                std::fread(&InfoNodes[i], sizeof(tInfoNode), 1, rbl);
             }
 
             std::fread(&iMaxUsedNodes, sizeof(int), 1, rbl);
@@ -2174,35 +2141,26 @@ void cNodeMachine::setUpInitialGoals() {
 tGoal* cNodeMachine::getRandomGoalByType(const int goalType) {
     if (goalType == GOAL_NONE)
         return nullptr;
-	
-    int possibleGoalNodes[MAX_GOALS];
-    for (int& possibleGoalNode : possibleGoalNodes)
-    {
-	    possibleGoalNode = -1;
-    }
-	
-    int possibleCandidateIndex = 0;
-    for (int goalIndex = 0; goalIndex < MAX_GOALS; goalIndex++) {
-        if (Goals[goalIndex].iType == goalType && // type equals requested type
-            Goals[goalIndex].iNode > -1) { // and it has a node
-			// possibleGoalNodes[possibleCandidateIndex] = Goals[goalIndex].iNode;
-            possibleGoalNodes[possibleCandidateIndex] = goalIndex;
-            possibleCandidateIndex++;
+
+    std::vector<int> possibleGoalIndices;
+    for (int goalIndex = 0; goalIndex < MAX_GOALS; ++goalIndex) {
+        if (Goals[goalIndex].iType == goalType && Goals[goalIndex].iNode > -1) {
+            possibleGoalIndices.push_back(goalIndex);
         }
     }
-	
-    if (possibleCandidateIndex == 0)
-        return nullptr;                // nothing found :(
-	
-    // we have an amount of goals, pick one randomly
-    const int randomGoalIndex = RANDOM_LONG(0, possibleCandidateIndex - 1);
-	
+
+    if (possibleGoalIndices.empty())
+        return nullptr;
+
+    const int randomIndex = RANDOM_LONG(0, static_cast<int>(possibleGoalIndices.size()) - 1);
+    const int chosenGoalIndex = possibleGoalIndices[randomIndex];
+
     char msg[255];
-    snprintf(msg, sizeof(msg), "cNodeMachine::getRandomGoalByType() - Found %d nodes of type %d and picked %d\n",
-        possibleCandidateIndex, goalType, randomGoalIndex);
+    snprintf(msg, sizeof(msg), "cNodeMachine::getRandomGoalByType() - Found %zu nodes of type %d and picked index %d (goal %d)\n",
+        possibleGoalIndices.size(), goalType, randomIndex, chosenGoalIndex);
     rblog(msg);
-	
-    return getGoal(possibleGoalNodes[randomGoalIndex]);
+
+    return getGoal(chosenGoalIndex);
 }
 
 // Contact scaler (on round start)

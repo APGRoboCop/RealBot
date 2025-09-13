@@ -73,6 +73,7 @@ public:
     void init();                 // Init (info)nodes
 
     void initNodes();
+    void initInfoNodes();
     void initializeNode(tNode& node);
     void initTroubles();
     void initPaths();
@@ -200,7 +201,7 @@ private:
     int iMaxUsedNodes = 0;
 
     byte iVisChecked[MAX_NODES] = {};
-    unsigned char * cVisTable = nullptr;
+    std::vector<unsigned char> cVisTable;
     tTrouble Troubles[MAX_TROUBLE] = {};
 
     void FindMinMax() const;

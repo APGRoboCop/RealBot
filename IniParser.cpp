@@ -50,6 +50,8 @@
 #include "ChatEngine.h"
 
 #include <cctype>
+#include <string_view>
+#include <unordered_map>
 
 extern int mod_id;
 extern edict_t* pHostEdict;
@@ -119,121 +121,53 @@ void INI_Word(char input[80], char word[25]) {
 
 // Reads out word[], does a string compare and returns type id
 int INI_WordType(char word[25], int section) {
-	if (word[0] != '\0') {
-		if (std::strcmp(word, "Word") == 0)
-			return WORD_WORD;
-		if (std::strcmp(word, "Sentence") == 0)
-			return WORD_SENTENCE;
+	if (word[0] == '\0') {
+		return WORD_NONE;
+	}
 
-		if (std::strcmp(word, "X") == 0)
-			return WORD_AREAX;
-		if (std::strcmp(word, "Y") == 0)
-			return WORD_AREAY;
-		if (std::strcmp(word, "Z") == 0)
-			return WORD_AREAZ;
+	static const std::unordered_map<std::string_view, int> wordMap = {
+		{"Word", WORD_WORD},
+		{"Sentence", WORD_SENTENCE},
+		{"X", WORD_AREAX},
+		{"Y", WORD_AREAY},
+		{"Z", WORD_AREAZ},
+		{"PrimaryWeapon", WORD_PRIWEAPON},
+		{"SecondaryWeapon", WORD_SECWEAPON},
+		{"SaveForWeapon", WORD_SAVEFORWEAP},
+		{"Grenade", WORD_GRENADE},
+		{"FlashBang", WORD_FLASHBANG},
+		{"SmokeGrenade", WORD_SMOKEGREN},
+		{"DefuseKit", WORD_DEFUSEKIT},
+		{"Armour", WORD_ARMOUR},
+		{"XOffset", WORD_XOFFSET},
+		{"YOffset", WORD_YOFFSET},
+		{"ZOffset", WORD_ZOFFSET},
+		{"BotSkill", WORD_BOTSKILL},
+		{"MaxReactionTime", WORD_MAXREACTTIME},
+		{"MinReactionTime", WORD_MINREACTTIME},
+		{"Turnspeed", WORD_TURNSPEED},
+		{"Hostage", WORD_HOSTAGERATE},
+		{"BompSpot", WORD_BOMBSPOTRATE},
+		{"Random", WORD_RANDOMRATE},
+		{"DroppedBomb", WORD_DROPPEDBOMB},
+		{"Reply", WORD_REPLYRADIO},
+		{"Create", WORD_CREATERADIO},
+		{"HelpTeammate", WORD_HELPTEAM},
+		{"WalkWithKnife", WORD_WALKKNIFE},
+		{"FearRate", WORD_FEARRATE},
+		{"HearRate", WORD_HEARRATE},
+		{"ChatRate", WORD_CHATRATE},
+		{"CampRate", WORD_CAMPRATE},
+		{"Price", WORD_PRICE},
+		{"Priority", WORD_PRIORITY},
+		{"Ammo1Index", WORD_INDEX1},
+		{"Ammo2Index", WORD_INDEX2},
+		{"Ammo1Max", WORD_MAXAMMO1},
+		{"Ammo2Max", WORD_MAXAMMO2}
+	};
 
-		// ------ personality stuff ------
-		if (std::strcmp(word, "PrimaryWeapon") == 0)
-			return WORD_PRIWEAPON;
-
-		if (std::strcmp(word, "SecondaryWeapon") == 0)
-			return WORD_SECWEAPON;
-
-		if (std::strcmp(word, "SaveForWeapon") == 0)
-			return WORD_SAVEFORWEAP;
-
-		if (std::strcmp(word, "Grenade") == 0)
-			return WORD_GRENADE;
-
-		if (std::strcmp(word, "FlashBang") == 0)
-			return WORD_FLASHBANG;
-
-		if (std::strcmp(word, "SmokeGrenade") == 0)
-			return WORD_SMOKEGREN;
-
-		if (std::strcmp(word, "DefuseKit") == 0)
-			return WORD_DEFUSEKIT;
-
-		if (std::strcmp(word, "Armour") == 0)
-			return WORD_ARMOUR;
-
-		// ---- skill
-
-		if (std::strcmp(word, "XOffset") == 0)
-			return WORD_XOFFSET;
-
-		if (std::strcmp(word, "YOffset") == 0)
-			return WORD_YOFFSET;
-
-		if (std::strcmp(word, "ZOffset") == 0)
-			return WORD_ZOFFSET;
-
-		if (std::strcmp(word, "BotSkill") == 0)
-			return WORD_BOTSKILL;
-
-		if (std::strcmp(word, "MaxReactionTime") == 0)
-			return WORD_MAXREACTTIME;
-
-		if (std::strcmp(word, "MinReactionTime") == 0)
-			return WORD_MINREACTTIME;
-
-		if (std::strcmp(word, "Turnspeed") == 0)
-			return WORD_TURNSPEED;
-
-		// ---- Game
-		if (std::strcmp(word, "Hostage") == 0)
-			return WORD_HOSTAGERATE;
-
-		if (std::strcmp(word, "BompSpot") == 0)
-			return WORD_BOMBSPOTRATE;
-
-		if (std::strcmp(word, "Random") == 0)
-			return WORD_RANDOMRATE;
-		if (std::strcmp(word, "DroppedBomb") == 0)
-			return WORD_DROPPEDBOMB;
-
-		// ---- Radio
-		if (std::strcmp(word, "Reply") == 0)
-			return WORD_REPLYRADIO;
-
-		if (std::strcmp(word, "Create") == 0)
-			return WORD_CREATERADIO;
-
-		// ---- Team
-		if (std::strcmp(word, "HelpTeammate") == 0)
-			return WORD_HELPTEAM;
-
-		// ---- person
-		if (std::strcmp(word, "WalkWithKnife") == 0)
-			return WORD_WALKKNIFE;
-		if (std::strcmp(word, "FearRate") == 0)
-			return WORD_FEARRATE;
-		if (std::strcmp(word, "HearRate") == 0)
-			return WORD_HEARRATE;
-		if (std::strcmp(word, "ChatRate") == 0)
-			return WORD_CHATRATE;
-
-		if (std::strcmp(word, "CampRate") == 0)
-			return WORD_CAMPRATE;
-
-		// ------ buy table stuff -------
-		if (std::strcmp(word, "Price") == 0)
-			return WORD_PRICE;
-
-		if (std::strcmp(word, "Priority") == 0)
-			return WORD_PRIORITY;
-
-		if (std::strcmp(word, "Ammo1Index") == 0)
-			return WORD_INDEX1;
-
-		if (std::strcmp(word, "Ammo2Index") == 0)
-			return WORD_INDEX2;
-
-		if (std::strcmp(word, "Ammo1Max") == 0)
-			return WORD_MAXAMMO1;
-
-		if (std::strcmp(word, "Ammo2Max") == 0)
-			return WORD_MAXAMMO2;
+	if (const std::unordered_map<std::string_view, int>::const_iterator it = wordMap.find(word); it != wordMap.end()) {
+		return it->second;
 	}
 
 	return WORD_NONE;
@@ -263,36 +197,23 @@ void INI_Sentence(FILE* f, char result[80]) {
 }
 
 // Reads out section[], does a string compare and returns type id
-int INI_SectionType(char section[30], int last) {
-	if (std::strcmp(section, "BLOCK") == 0)
-		return INI_BLOCK;
+int INI_SectionType(char section[30], const int last) {
+	static const std::unordered_map<std::string_view, int> sectionMap = {
+		{"BLOCK", INI_BLOCK},
+		{"DEATH", INI_DEATHS},
+		{"WELCOME", INI_WELCOME},
+		{"AREA", INI_AREA},
+		{"WEAPON", INI_WEAPON},
+		{"SKILL", INI_SKILL},
+		{"GAME", INI_GAME},
+		{"RADIO", INI_RADIO},
+		{"TEAM", INI_TEAM},
+		{"PERSON", INI_PERSON}
+	};
 
-	if (std::strcmp(section, "DEATH") == 0)
-		return INI_DEATHS;
-
-	if (std::strcmp(section, "WELCOME") == 0)
-		return INI_WELCOME;
-
-	if (std::strcmp(section, "AREA") == 0)
-		return INI_AREA;
-
-	if (std::strcmp(section, "WEAPON") == 0)
-		return INI_WEAPON;
-
-	if (std::strcmp(section, "SKILL") == 0)
-		return INI_SKILL;
-
-	if (std::strcmp(section, "GAME") == 0)
-		return INI_GAME;
-
-	if (std::strcmp(section, "RADIO") == 0)
-		return INI_RADIO;
-
-	if (std::strcmp(section, "TEAM") == 0)
-		return INI_TEAM;
-
-	if (std::strcmp(section, "PERSON") == 0)
-		return INI_PERSON;
+	if (const std::unordered_map<std::string_view, int>::const_iterator it = sectionMap.find(section); it != sectionMap.end()) {
+		return it->second;
+	}
 
 	// When nothing found; we assume its just a new ID tag for some unit or structure
 	// Therefor we return the last known SECTION ID so we can assign the proper WORD ID's
@@ -540,7 +461,6 @@ void INI_PARSE_CHATFILE() {
 	char dirname[256];
 	char filename[256];
 
-	FILE* stream;
 	int section = INI_NONE;
 
 	// Set Directory name + file
@@ -552,12 +472,13 @@ void INI_PARSE_CHATFILE() {
 	// make sure the engine knows...
 	REALBOT_PRINT(nullptr, "INI_PARSE_CHATFILE", "Loading CHAT.INI\n");
 
-	int iBlockId = -1;
-	int iBlockWord = -1;
-	int iBlockSentence = -1;
-
 	// load it
-	if ((stream = std::fopen(filename, "r+t")) != nullptr) {
+	if (FILE* stream; (stream = std::fopen(filename, "r+t")) != nullptr) {
+
+		int iBlockId = -1;
+		int iBlockWord = -1;
+		int iBlockSentence = -1;
+
 		// infinite loop baby
 		while (!feof(stream)) {
 			char linesection[30];
