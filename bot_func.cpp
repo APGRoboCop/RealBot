@@ -747,7 +747,7 @@ void FUNC_HearingTodo(cBot* pBot) {
         pBot->f_hold_duck = gpGlobals->time + etime;
     }
 
-    pBot->f_hear_time = gpGlobals->time + 6;     // Always keep a 6 seconds
+    pBot->f_hear_time = gpGlobals->time + 6.0f;     // Always keep a 6 seconds
     // think time.
 }
 
@@ -1083,7 +1083,7 @@ void FUNC_BotChecksFalling(cBot* pBot) {
 }
 
 // New function to display a message on the center of the screen
-void CenterMessage(char* buffer) {
+void CenterMessage(const char* buffer) {
     //DebugOut("waypoint: CenterMessage():\n");
     //DebugOut(buffer);
     //DebugOut("\n");

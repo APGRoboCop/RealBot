@@ -3467,7 +3467,7 @@ bool cBot::isEscortingHostages() {
 
 void cBot::checkOfHostagesStillFollowMe() {
 	if (fCheckHostageStatusTimer > gpGlobals->time) return;
-	fCheckHostageStatusTimer = gpGlobals->time + 5;
+	fCheckHostageStatusTimer = gpGlobals->time + 5.0f;
 
 ////    this->rprint("checkOfHostagesStillFollowMe - START");
 //    if (hostage1) {

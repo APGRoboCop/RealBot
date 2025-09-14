@@ -144,6 +144,6 @@ void UTIL_BotPressKey(cBot* pBot, int type);
 // bot_navigate.cpp
 
 // ..
-void CenterMessage(char* buffer);
+void CenterMessage(const char* buffer);
 
 #endif                          // BOT_FUNC_H
