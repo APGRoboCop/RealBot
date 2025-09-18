@@ -797,19 +797,27 @@ bool FUNC_IsOnLadder(const edict_t* pEntity) {
 
 bool IsShootableBreakable(edict_t* pent)
 {
-    if (FStrEq("func_breakable", STRING(pent->v.classname)))
+    if (!pent) {
+        return false;
+    }
+
+    const char* classname = STRING(pent->v.classname);
+
+    if (FStrEq("func_breakable", classname))
     {
-        // breakable glass etc.
-        if (pent->v.spawnflags & 1) // SF_BREAK_TRIGGER_ONLY
+        // Not shootable if it's trigger-only or already broken (health <= 0)
+        if ((pent->v.spawnflags & 1) || pent->v.health <= 0) // SF_BREAK_TRIGGER_ONLY
             return false;
 
-        if (pent->v.health > 0)
-            return true;
-    }
-    else if (FStrEq("func_pushable", STRING(pent->v.classname)) && (pent->v.spawnflags & 2)) // SF_PUSH_BREAKABLE
-    {
         return true;
     }
+
+    if (FStrEq("func_pushable", classname))
+    {
+        // Shootable if it's a breakable pushable
+        return (pent->v.spawnflags & 2) != 0; // SF_PUSH_BREAKABLE
+    }
+
     return false;
 }
 

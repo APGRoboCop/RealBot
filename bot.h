@@ -574,6 +574,8 @@ public:
     void doDuckJump();
     bool isDuckJumping();
 
+    bool isStuck() const;
+
     void doDuck();
     bool isDucking();
     bool isWalking();
