@@ -57,7 +57,7 @@ extern cNodeMachine NodeMachine;
 // For taking cover decision
 constexpr int TOTAL_SCORE = 16300;  // 16000 money + 100 health + 100 fear + 100 camp desire;
 
-bool VectorIsVisibleWithEdict(edict_t *pEdict, const Vector& dest, const char *checkname) {
+bool VectorIsVisibleWithEdict(edict_t* pEdict, const Vector& dest, const char* checkname) {
     TraceResult tr;
 
     const Vector start = pEdict->v.origin + pEdict->v.view_ofs;
@@ -82,7 +82,7 @@ bool VectorIsVisibleWithEdict(edict_t *pEdict, const Vector& dest, const char *c
     return tr.flFraction >= 1.0f;
 }
 
-bool VectorIsVisible(const Vector& start, const Vector& dest, const char *checkname) {
+bool VectorIsVisible(const Vector& start, const Vector& dest, const char* checkname) {
     TraceResult tr;
 
     // trace a line from bot's eyes to destination...
@@ -492,7 +492,7 @@ Vector FUNC_CalculateAngles(const cBot* pBot) {
     return v_body;
 }
 
-bool BotShouldDuck(cBot *pBot) {
+bool BotShouldDuck(cBot* pBot) {
     if (pBot->iDuckTries > 3) {
         // tried to duck 3 times, so no longer!
         pBot->rprint_trace("BotShouldDuck", "Returning false because ducked too many times.");
@@ -594,7 +594,7 @@ bool FUNC_PlayerRuns(const int speed) {
 
 // return weapon type of edict.
 // only when 'important enough'.
-int FUNC_EdictHoldsWeapon(const edict_t *pEdict) {
+int FUNC_EdictHoldsWeapon(const edict_t* pEdict) {
     const std::string weaponModel = STRING(pEdict->v.weaponmodel);
     // sniper guns
     //if (weaponModel == "models/p_awp.mdl") //Excluded for high prices and accuracy [APG]RoboCop[CL]
@@ -795,6 +795,24 @@ bool FUNC_IsOnLadder(const edict_t* pEntity) {
     return pEntity->v.movetype == MOVETYPE_FLY;
 }
 
+bool IsShootableBreakable(edict_t* pent)
+{
+    if (FStrEq("func_breakable", STRING(pent->v.classname)))
+    {
+        // breakable glass etc.
+        if (pent->v.spawnflags & 1) // SF_BREAK_TRIGGER_ONLY
+            return false;
+
+        if (pent->v.health > 0)
+            return true;
+    }
+    else if (FStrEq("func_pushable", STRING(pent->v.classname)) && (pent->v.spawnflags & 2)) // SF_PUSH_BREAKABLE
+    {
+        return true;
+    }
+    return false;
+}
+
 void FUNC_FindBreakable(cBot* pBot)
 {
     // The "func_breakable" entity is required for bots to recognize and attack
@@ -809,44 +827,18 @@ void FUNC_FindBreakable(cBot* pBot)
     // Search for entities within a 256-unit radius around the bot
     while ((pent = UTIL_FindEntityInSphere(pent, pEntity->v.origin, 256.0f)) != nullptr)
     {
-        if (pent == pEntity || (pent->v.flags & FL_DORMANT)) {
-            continue; // Skip self and dormant entities
+        if (pent == pEntity || (pent->v.flags & FL_DORMANT) || pent->v.health <= 0) {
+            continue; // Skip self, dormant, and already broken entities
         }
 
-        const char* classname = STRING(pent->v.classname);
-
-        if (classname != nullptr && std::strcmp(classname, "func_breakable") == 0) {
-            if (FVisible(pent->v.origin, pEntity)) {
-                // Set the breakable entity as the bot's enemy
-                pBot->pEdict->v.enemy = pent;
-
-                // Aim at the breakable entity
-                pBot->vBody = pent->v.origin;
-                pBot->vHead = pent->v.origin;
-
-                // Shoot at the breakable entity
-                UTIL_BotPressKey(pBot, IN_ATTACK);
-                return; // Exit after finding the first visible breakable entity
+        if (IsShootableBreakable(pent)) {
+            if (pBot->canSeeEntity(pent)) {
+                pBot->pBreakableEdict = pent;
+                return;
             }
         }
     }
 }
-
-/*bool IsShootableBreakable(edict_t* pent)  // KWo - 08.02.2006
-{
-    if (pent == nullptr)
-        return false;
-
-    return (FStrEq("func_breakable", STRING(pent->v.classname))
-        && (pent->v.playerclass == 1 || pent->v.health == 0
-            || pent->v.health > 1 && pent->v.health < 1000
-            || pent->v.rendermode == 4) // KWo - 21.02.2006 - br. crates has rendermode 4
-        || FStrEq("func_pushable", STRING(pent->v.classname))
-        && pent->v.health < 1000 && pent->v.spawnflags & SF_PUSH_BREAKABLE)  // KWo - 03.02.2007
-        && pent->v.impulse == 0
-        && pent->v.takedamage > 0
-        && !(pent->v.spawnflags & SF_BREAK_TRIGGER_ONLY);
-}*/
 
 void FUNC_CheckForBombPlanted(edict_t* pEntity) //Experimental [APG]RoboCop[CL]
 {

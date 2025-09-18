@@ -8,7 +8,7 @@
   **
   * DISCLAIMER
   *
-  * History, Information & Credits: 
+  * History, Information & Credits:
   * RealBot is based partially upon the HPB-Bot Template #3 by Botman
   * Thanks to Ditlew (NNBot), Pierre Marie Baty (RACCBOT), Tub (RB AI PR1/2/3)
   * Greg Slocum & Shivan (RB V1.0), Botman (HPB-Bot) and Aspirin (JOEBOT). And
@@ -20,9 +20,9 @@
   *
   * Pierre Marie Baty
   * Count - Floyd
-  *  
-  * !! BOTS-UNITED FOREVER !! 
-  *  
+  *
+  * !! BOTS-UNITED FOREVER !!
+  *
   * This project is open-source, it is protected under the GPL license;
   * By using this source-code you agree that you will ALWAYS release the
   * source-code with your project.
@@ -30,49 +30,49 @@
   **/
 
 
-/*
+  /*
 
-//=========================================================
-// Returns if enemy can be shoot through some obstacle
-//=========================================================
-bool CBaseBot::IsShootableThruObstacle(Vector vecDest)
-{
- if (!WeaponShootsThru(m_iCurrentWeapon))
-	return FALSE;
+  //=========================================================
+  // Returns if enemy can be shoot through some obstacle
+  //=========================================================
+  bool CBaseBot::IsShootableThruObstacle(Vector vecDest)
+  {
+   if (!WeaponShootsThru(m_iCurrentWeapon))
+	  return FALSE;
 
- Vector vecSrc = EyePosition();
- Vector vecDir = (vecDest - vecSrc).Normalize();  // 1 unit long
- Vector vecPoint = g_vecZero;
- int iThickness = 0;
- int iHits = 0;
+   Vector vecSrc = EyePosition();
+   Vector vecDir = (vecDest - vecSrc).Normalize();  // 1 unit long
+   Vector vecPoint = g_vecZero;
+   int iThickness = 0;
+   int iHits = 0;
 
- edict_t *pentIgnore = pev->pContainingEntity;
- TraceResult tr;
- UTIL_TraceLine(vecSrc, vecDest, ignore_monsters, ignore_glass, pentIgnore, &tr);
+   edict_t *pentIgnore = pev->pContainingEntity;
+   TraceResult tr;
+   UTIL_TraceLine(vecSrc, vecDest, ignore_monsters, ignore_glass, pentIgnore, &tr);
 
- while (tr.flFraction != 1.0 && iHits < 3)
- {
-	iHits++;
-	iThickness++;
-	vecPoint = tr.vecEndPos + vecDir;
-	while (POINT_CONTENTS(vecPoint) == CONTENTS_SOLID && iThickness < 64)
-	{
-	   vecPoint = vecPoint + vecDir;
-	   iThickness++;
-	}
-	UTIL_TraceLine(vecPoint, vecDest, ignore_monsters, ignore_glass, pentIgnore, &tr);
- }
+   while (tr.flFraction != 1.0 && iHits < 3)
+   {
+	  iHits++;
+	  iThickness++;
+	  vecPoint = tr.vecEndPos + vecDir;
+	  while (POINT_CONTENTS(vecPoint) == CONTENTS_SOLID && iThickness < 64)
+	  {
+		 vecPoint = vecPoint + vecDir;
+		 iThickness++;
+	  }
+	  UTIL_TraceLine(vecPoint, vecDest, ignore_monsters, ignore_glass, pentIgnore, &tr);
+   }
 
- if (iHits < 3 && iThickness < 64)
- {
-	if (LengthSquared(vecDest - vecPoint) < 12544)
-	   return TRUE;
- }
+   if (iHits < 3 && iThickness < 64)
+   {
+	  if (LengthSquared(vecDest - vecPoint) < 12544)
+		 return TRUE;
+   }
 
- return FALSE;
-}
+   return FALSE;
+  }
 
-*/
+  */
 
 #include <algorithm>
 #include <cassert>
@@ -94,7 +94,7 @@ bool CBaseBot::IsShootableThruObstacle(Vector vecDest)
 #include <sys/types.h>
 #include <sys/stat.h>
 
-extern edict_t *pHostEdict;
+extern edict_t* pHostEdict;
 extern int mod_id;
 extern bool internet_play;
 extern cGame Game;
@@ -107,7 +107,7 @@ extern bool autoskill;
 /* Radio issue
    Credit by Ditlew (NNBOT - Rest In Peace) */
 bool radio_message = false;
-char *message = static_cast<char*>(malloc(64 * sizeof(char)));
+char* message = static_cast<char*>(malloc(64 * sizeof(char)));
 char radio_messenger[30];
 
 // random boundries
@@ -193,6 +193,7 @@ void cBot::SpawnInit() {
 	pBotHostage = nullptr;
 	clearHostages();
 	pEnemyEdict = nullptr;
+	pBreakableEdict = nullptr;
 
 	// chat
 	std::memset(chChatSentence, 0, sizeof(chChatSentence));
@@ -358,6 +359,7 @@ void cBot::NewRound() {
 	pBotHostage = nullptr;
 	clearHostages();
 	pEnemyEdict = nullptr;
+	pBreakableEdict = nullptr;
 
 	// ------------------------
 	// INTEGERS
@@ -369,7 +371,7 @@ void cBot::NewRound() {
 	bot_health = 0;
 	prev_health = 0;
 	bot_armor = 0;
-//   bot_weapons = 0; // <- stefan: prevent from buying new stuff every round!
+	//   bot_weapons = 0; // <- stefan: prevent from buying new stuff every round!
 	console_nr = 0;
 	pathIndex = -1;
 	iGoalNode = -1;
@@ -462,7 +464,7 @@ void cBot::NewRound() {
 			// we should say something now?
 			int iMax = -1;
 
-			for (const char (&tc)[128] : ChatEngine.ReplyBlock[98].sentence)
+			for (const char(&tc)[128] : ChatEngine.ReplyBlock[98].sentence)
 			{
 				if (tc[0] != '\0')
 					iMax++;
@@ -678,7 +680,7 @@ void cBot::AimAtEnemy() {
 		vTarget = pEnemyEdict->v.origin +
 		pEnemyEdict->v.view_ofs * RANDOM_FLOAT(-2.5f, 2.5f); // aim for the head more fuzzy
 	else
-		vTarget = pEnemyEdict->v.origin; // aim for body
+		vTarget = pEdict->v.origin; // aim for body
 
 	// Based upon how far, we make this fuzzy
 	float fDy, fDz;
@@ -696,9 +698,9 @@ void cBot::AimAtEnemy() {
 	// fd* = 3 * 2
 
 	vTarget = vTarget + Vector(
-			RANDOM_FLOAT(-fDx, fDx),
-			RANDOM_FLOAT(-fDy, fDy),
-			RANDOM_FLOAT(-fDz, fDz)
+		RANDOM_FLOAT(-fDx, fDx),
+		RANDOM_FLOAT(-fDy, fDy),
+		RANDOM_FLOAT(-fDz, fDz)
 	);
 
 	// Add Offset
@@ -708,9 +710,9 @@ void cBot::AimAtEnemy() {
 
 	// increase offset with personality x,y,z offsets randomly
 	vTarget = vTarget + Vector(
-			RANDOM_FLOAT(-fDx, fDx),
-			RANDOM_FLOAT(-fDy, fDy),
-			RANDOM_FLOAT(-fDz, fDz)
+		RANDOM_FLOAT(-fDx, fDx),
+		RANDOM_FLOAT(-fDy, fDy),
+		RANDOM_FLOAT(-fDz, fDz)
 	);
 
 	if (isHoldingGrenadeOrFlashbang()) {
@@ -923,7 +925,7 @@ void cBot::PickBestWeapon() {
 			UTIL_SelectItem(pEdict, "weapon_hegrenade");   // select grenade
 			f_wait_time = gpGlobals->time + 1.0f;     // wait 1 second (stand still 1 sec)
 			f_gren_time =
-					gpGlobals->time + (1.0f + RANDOM_FLOAT(0.5f, 1.5f));        // and determine how long we should hold it
+				gpGlobals->time + (1.0f + RANDOM_FLOAT(0.5f, 1.5f));        // and determine how long we should hold it
 			zoomed = ZOOM_NONE;    // Counter-Strike resets zooming when choosing another weapon
 			return;
 		}
@@ -938,7 +940,7 @@ void cBot::PickBestWeapon() {
 			UTIL_SelectItem(pEdict, "weapon_flashbang");   // select grenade
 			f_wait_time = gpGlobals->time + 1.0f;     // wait 1 second (stand still 1 sec)
 			f_gren_time =
-					gpGlobals->time + (1.0f + RANDOM_FLOAT(0.5f, 1.5f));        // and determine how long we should hold it
+				gpGlobals->time + (1.0f + RANDOM_FLOAT(0.5f, 1.5f));        // and determine how long we should hold it
 			zoomed = ZOOM_NONE;    // Counter-Strike resets zooming when choosing another weapon
 			return;
 		}
@@ -966,7 +968,7 @@ void cBot::PickBestWeapon() {
 		if (iTotalAmmo > 0) {
 			UTIL_BotPressKey(this, IN_RELOAD);
 			f_update_weapon_time = gpGlobals->time + 0.7f;  // update timer
-		   // return;
+			// return;
 		} else {
 			// Thanks to dstruct2k for easy ctrl-c/v, i optimized the code
 			// a bit though. Btw, distance 600 is too far for slashing :)
@@ -1010,7 +1012,7 @@ void cBot::FireWeapon() {
 		f_update_weapon_time > gpGlobals->time)
 		return;
 
-	if (!isSeeingEnemy()) {
+	if (pBreakableEdict == nullptr && !isSeeingEnemy()) {
 		return;
 	}
 
@@ -1040,8 +1042,8 @@ void cBot::FireWeapon() {
 			if (f_shoot_wait_time < gpGlobals->time) {
 				// AK, COLT, STEYR AUG, SIG SG552 only when enough skill!
 				if ((CarryWeapon(CS_WEAPON_AK47) || CarryWeapon(CS_WEAPON_M4A1)
-					 || CarryWeapon(CS_WEAPON_SG552) || CarryWeapon(CS_WEAPON_AUG))
-						&& bot_skill < 3) {
+					|| CarryWeapon(CS_WEAPON_SG552) || CarryWeapon(CS_WEAPON_AUG))
+					&& bot_skill < 3) {
 					float f_burst = (2048 / fDistance) + 0.1f;
 					f_burst = std::max(f_burst, 0.1f);
 					f_burst = std::min(f_burst, 0.4f);
@@ -1069,7 +1071,7 @@ void cBot::FireWeapon() {
 							f_prim_weapon = gpGlobals->time + f_burst;
 					}
 					f_shoot_wait_time =
-							gpGlobals->time + f_burst + RANDOM_FLOAT(0.2f, 0.7f);
+						gpGlobals->time + f_burst + RANDOM_FLOAT(0.2f, 0.7f);
 				}
 			}
 		}                         // give the bot alteast 0.3 seconds to fire its weapon
@@ -1113,7 +1115,7 @@ void cBot::FireWeapon() {
 			// get weapon here.
 			if (hasShieldDrawn() && f_allow_keypress < gpGlobals->time) {
 				rblog
-						("BOT: Enemy is close enough, i should withdraw shield to attack this enemy\n");
+				("BOT: Enemy is close enough, i should withdraw shield to attack this enemy\n");
 				UTIL_BotPressKey(this, IN_ATTACK2);
 				f_allow_keypress = gpGlobals->time + 0.7f;
 			}
@@ -1128,6 +1130,20 @@ void cBot::FireWeapon() {
  Function purpose: The combat brain of the bot ( called by Think() )
  ******************************************************************************/
 void cBot::Combat() {
+	if (pBreakableEdict != nullptr) {
+		// If the breakable is no longer valid, forget it
+		if (pBreakableEdict->v.health <= 0 || (pBreakableEdict->v.flags & FL_DORMANT)) {
+			pBreakableEdict = nullptr;
+			return;
+		}
+
+		// Aim and fire at the breakable
+		const Vector vBreakableOrigin = VecBModelOrigin(pBreakableEdict);
+		setHeadAiming(vBreakableOrigin);
+		FireWeapon();
+		return;
+	}
+
 	if (!hasEnemy()) {
 		rprint("Unexpected call to Combat because bot has no enemy!");
 		return;
@@ -1136,7 +1152,7 @@ void cBot::Combat() {
 	// Bot is on ladder
 	if (isOnLadder()) {
 		// TODO: Bot fights when on ladder
-		
+
 		return;
 	}
 
@@ -1149,7 +1165,7 @@ void cBot::Combat() {
 		}
 
 		// get bot pointer
-		const cBot *checkpointer = UTIL_GetBotPointer(pEnemyEdict);
+		const cBot* checkpointer = UTIL_GetBotPointer(pEnemyEdict);
 
 		// This bot killed a human; adjust skill when 'autoskill' is on.
 		if (checkpointer == nullptr) {
@@ -1274,13 +1290,13 @@ void cBot::FindCover() {
 
 	// Now check at the right again
 	UTIL_TraceLine(v_src, v_right, dont_ignore_monsters,
-				   pEdict->v.pContainingEntity, &tr);
+		pEdict->v.pContainingEntity, &tr);
 
 	if (tr.flFraction >= 1.0f) {
 		// We can see it
 		// Now trace from that vector to our threat
 		UTIL_TraceLine(v_right, dest, dont_ignore_monsters,
-					   pEdict->v.pContainingEntity, &tr);
+			pEdict->v.pContainingEntity, &tr);
 
 		// If this is blocking.. then its a good wpt
 		if (tr.flFraction < 1.0f) {
@@ -1295,12 +1311,12 @@ void cBot::FindCover() {
 
 	// Now check at the left
 	UTIL_TraceLine(v_src, v_left, dont_ignore_monsters,
-				   pEdict->v.pContainingEntity, &tr);
+		pEdict->v.pContainingEntity, &tr);
 	if (tr.flFraction >= 1.0f) {
 		// We can see it
 		// Now trace from that vector to our threat
 		UTIL_TraceLine(v_left, dest, dont_ignore_monsters,
-					   pEdict->v.pContainingEntity, &tr);
+			pEdict->v.pContainingEntity, &tr);
 
 		// If this is blocking.. then its a good wpt
 		if (tr.flFraction < 1.0f) {
@@ -1374,7 +1390,7 @@ void cBot::InteractWithFriends() {
 
 	for (int i = 1; i <= gpGlobals->maxClients; i++) {
 
-		edict_t *pPlayer = INDEXENT(i);
+		edict_t* pPlayer = INDEXENT(i);
 
 		// skip invalid players and skip self (i.e. this bot)
 		if (pPlayer && !pPlayer->free && pPlayer != pEdict) {
@@ -1398,7 +1414,7 @@ void cBot::InteractWithFriends() {
 				bCanSeePlayer = true;
 
 			// there are tons of cases
-			const cBot *pBotPointer = UTIL_GetBotPointer(pPlayer);
+			const cBot* pBotPointer = UTIL_GetBotPointer(pPlayer);
 
 			// It is a fellow bot
 			if (pBotPointer != nullptr) {
@@ -1595,9 +1611,11 @@ void cBot::JoinTeam() {
 		// select the team the bot wishes to join...
 		if (iTeam == 1) {
 			std::strcpy(c_team, "1");
-		} else if (iTeam == 2) {
+		}
+		else if (iTeam == 2) {
 			std::strcpy(c_team, "2");
-		} else {
+		}
+		else {
 			std::strcpy(c_team, "5");
 		}
 
@@ -1649,8 +1667,9 @@ void cBot::JoinTeam() {
 
 		// Since cs 1.6 does not give us pretty random models
 		// we do it ourselves
-		if (bot_class == 5)
+		if (bot_class == 5) {
 			bot_class = RANDOM_LONG(1, 4);
+		}
 
 		// select the class the bot wishes to use...
 		if (bot_class == 1)
@@ -1870,11 +1889,11 @@ void cBot::Act() {
 	if (f_camp_time > gpGlobals->time) {
 		// When camping we duck and we don't move
 		UTIL_BotPressKey(this, IN_DUCK);
-		
+
 
 		setMoveSpeed(0.0f);       // do not move
 		PickBestWeapon();         // pick weapon, do not stare with knife
-		
+
 		// when dropped C4 and CT we look at C4
 		if (isCounterTerrorist() && Game.vDroppedC4 != Vector(9999, 9999, 9999)) {
 			// look at dropped C4
@@ -1886,7 +1905,7 @@ void cBot::Act() {
 					forgetPath();
 					forgetGoal();
 					vHead = vBody = NodeMachine.node_vector(iGoalNode);
-				} 
+				}
 				else {
 					vHead = vBody = Game.vDroppedC4;
 				}
@@ -2134,39 +2153,6 @@ void cBot::CheckAround() {
 	else {
 		rprint_trace("CheckAround", "Nothing in front of me");
 	}
-
-	// -------------------------------------------------------------
-	// When checking around a bot also handles breakable stuff.
-	// -------------------------------------------------------------
-
-	edict_t* pent = nullptr;
-	while ((pent = UTIL_FindEntityInSphere(pent, pEdict->v.origin, 60.0f)) != nullptr) {
-		char item_name[40];
-		std::strcpy(item_name, STRING(pent->v.classname));
-
-		// See if it matches our object name
-		if (std::strcmp("func_breakable", item_name) == 0) {
-
-			// Found a func_breakable
-			const Vector vBreakableOrigin = VecBModelOrigin(pent);
-
-			// Shoot
-			if ((pent->v.flags & FL_WORLDBRUSH) == 0)      // can it be broken?
-			{
-				// Thx for CF by fixing breakable coding
-				if (pent->v.solid == SOLID_BSP && pent->v.takedamage == DAMAGE_YES && pent->v.impulse == 0 &&
-					pent->v.health < 150) // has it NOT been broken yet?
-				{
-					// trace to vector to be sure we dont get blocked by anything else
-					if (VectorIsVisibleWithEdict(pEdict, vBreakableOrigin, "func_breakable")) {
-						setHeadAiming(vBreakableOrigin);
-						FireWeapon();
-					}
-					return;
-				}
-			}
-		}                         // CAN BE BROKEN
-	}                            // FUNC_BREAKABLE
 }
 
 // BOT: Should be taking cover?
@@ -2222,10 +2208,10 @@ bool cBot::hasGoalIndex() const
  * Returns goal data , if goal data exists
  * @return
  */
-tGoal *cBot::getGoalData() const
+tGoal* cBot::getGoalData() const
 {
 	if (!hasGoalIndex()) return nullptr;
-	tGoal *ptr = NodeMachine.getGoal(this->goalIndex);
+	tGoal* ptr = NodeMachine.getGoal(this->goalIndex);
 	if (ptr == nullptr) return nullptr;
 
 	// only goals with a node are valid
@@ -2241,11 +2227,11 @@ bool cBot::hasEnemy() const
 	return this->pEnemyEdict != nullptr;
 }
 
- /**
-  * Returns true when given edict == our enemy edict
-  * @param pEntity
-  * @return
-  */
+/**
+ * Returns true when given edict == our enemy edict
+ * @param pEntity
+ * @return
+ */
 bool cBot::hasEnemy(const edict_t* pEntity) const
 {
 	return this->pEnemyEdict == pEntity;
@@ -2263,9 +2249,9 @@ bool cBot::shouldBeWandering() {
 }
 
 void cBot::setMoveSpeed(const float value) {
-//    char msg[255];
-//    sprintf(msg, "setting to value %f / maxSpeed %f - sv_maxspeed = %f", value, this->f_max_speed, CVAR_GET_FLOAT("sv_maxspeed"));
-//    rprint_trace("setMoveSpeed", msg);
+	//    char msg[255];
+	//    sprintf(msg, "setting to value %f / maxSpeed %f - sv_maxspeed = %f", value, this->f_max_speed, CVAR_GET_FLOAT("sv_maxspeed"));
+	//    rprint_trace("setMoveSpeed", msg);
 	this->f_move_speed = value;
 }
 
@@ -2333,7 +2319,7 @@ void cBot::forgetEnemy() {
 	this->pEnemyEdict = nullptr;
 }
 
-edict_t * cBot::getEnemyEdict() const
+edict_t* cBot::getEnemyEdict() const
 {
 	return this->pEnemyEdict;
 }
@@ -2350,15 +2336,15 @@ void cBot::setGoalNode(const int nodeIndex, const int iGoalIndex) {
 	this->iGoalNode = nodeIndex;
 	this->goalIndex = iGoalIndex;
 
-	tGoal *goalPtr = getGoalData();
+	tGoal* goalPtr = getGoalData();
 	char msg[255] = {};
 
 	if (goalPtr != nullptr) {
 		snprintf(msg, sizeof(msg), "Setting iGoalNode to [%d] and goalIndex [%d] - GOAL: type [%s], checked [%d]",
-				nodeIndex,
-				goalIndex,
-				goalPtr->name,
-				goalPtr->iChecked
+			nodeIndex,
+			goalIndex,
+			goalPtr->name,
+			goalPtr->iChecked
 		);
 	} else {
 		snprintf(msg, sizeof(msg), "Setting iGoalNode to [%d] and goalIndex [%d] - could not retrieve goal data.", nodeIndex, goalIndex);
@@ -2371,7 +2357,7 @@ void cBot::setGoalNode(const int nodeIndex)
 	this->setGoalNode(nodeIndex, -1);
 }
 
-void cBot::setGoalNode(tGoal *goal)
+void cBot::setGoalNode(tGoal* goal)
 {
 	if (goal != nullptr && goal->iNode > -1) {
 		rprint("setGoalNode with goal pointer\n");
@@ -2384,7 +2370,7 @@ void cBot::setGoalNode(tGoal *goal)
  * @param Function
  * @param msg
  */
-void cBot::rprint(const char *Function, const char *msg)
+void cBot::rprint(const char* Function, const char* msg)
 {
 	REALBOT_PRINT(this, Function, msg);
 }
@@ -2413,15 +2399,15 @@ void cBot::rprint_normal(const char* Function, const char* msg)
 	}
 }
 
-void cBot::rprint(const char *msg) {
+void cBot::rprint(const char* msg) {
 	rprint("rprint()", msg);
 }
 
-void cBot::rprint_normal(const char *msg) {
+void cBot::rprint_normal(const char* msg) {
 	rprint_normal("rprint()", msg);
 }
 
-void cBot::rprint_trace(const char *msg) {
+void cBot::rprint_trace(const char* msg) {
 	rprint_trace("rprint()", msg);
 }
 
@@ -2460,7 +2446,7 @@ bool cBot::hasSecondaryWeapon(const int weaponId) const
 	return isOwningWeapon(weaponId);
 }*/
 
-void cBot::performBuyWeapon(const char *menuItem, const char *subMenuItem) {
+void cBot::performBuyWeapon(const char* menuItem, const char* subMenuItem) {
 	// To be sure the console will only change when we MAY change.
 	// The values will only be changed when console_nr is 0
 	if (Game.getRoundStartedTime() + 4 < gpGlobals->time)
@@ -2489,93 +2475,93 @@ void cBot::performBuyActions(const int weaponIdToBuy) {
 	// CS 1.5 only
 	if (counterstrike == 0) {
 		switch (weaponIdToBuy) {
-			case CS_WEAPON_AK47:
-				performBuyWeapon("4", "1");
-				break;
-			case CS_WEAPON_DEAGLE:
-				performBuyWeapon("1", "3");
-				break;
-			case CS_WEAPON_P228:
-				performBuyWeapon("1", "4");
-				break;
-			case CS_WEAPON_SG552:
-				performBuyWeapon("4", "2");
-				break;
-			case CS_WEAPON_SG550:
-				performBuyWeapon("4", "8");
-				break;
-			case CS_WEAPON_SCOUT:
-				performBuyWeapon("4", "5");
-				break;
-			case CS_WEAPON_AWP:
-				performBuyWeapon("4", "6");
-				break;
-			case CS_WEAPON_MP5NAVY:
-				performBuyWeapon("3", "1");
-				break;
-			case CS_WEAPON_UMP45:
-				performBuyWeapon("3", "5");
-				break;
-			case CS_WEAPON_ELITE:
-				performBuyWeapon("1", "5");
-				break;              // T only
-			case CS_WEAPON_MAC10:
-				performBuyWeapon("3", "4");
-				break;              // T only
-			case CS_WEAPON_AUG:
-				performBuyWeapon("4", "4");
-				break;              // CT Only
-			case CS_WEAPON_FIVESEVEN:
-				performBuyWeapon("1", "6");
-				break;              // CT only
-			case CS_WEAPON_M4A1:
-				performBuyWeapon("4", "3");
-				break;              // CT Only
-			case CS_WEAPON_TMP:
-				performBuyWeapon("3", "2");
-				break;              // CT only
-			case CS_WEAPON_HEGRENADE:
-				performBuyWeapon("8", "4");
-				break;
-			case CS_WEAPON_XM1014:
-				performBuyWeapon("2", "2");
-				break;
-			case CS_WEAPON_SMOKEGRENADE:
-				performBuyWeapon("8", "5");
-				break;
-			case CS_WEAPON_USP:
-				performBuyWeapon("1", "1");
-				break;
-			case CS_WEAPON_GLOCK18:
-				performBuyWeapon("1", "2");
-				break;
-			case CS_WEAPON_M249:
-				performBuyWeapon("5", "1");
-				break;
-			case CS_WEAPON_M3:
-				performBuyWeapon("2", "1");
-				break;
-			case CS_WEAPON_G3SG1:
-				performBuyWeapon("4", "7");
-				break;
-			case CS_WEAPON_FLASHBANG:
-				performBuyWeapon("8", "3");
-				break;
-			case CS_WEAPON_P90:
-				performBuyWeapon("3", "3");
-				break;
+		case CS_WEAPON_AK47:
+			performBuyWeapon("4", "1");
+			break;
+		case CS_WEAPON_DEAGLE:
+			performBuyWeapon("1", "3");
+			break;
+		case CS_WEAPON_P228:
+			performBuyWeapon("1", "4");
+			break;
+		case CS_WEAPON_SG552:
+			performBuyWeapon("4", "2");
+			break;
+		case CS_WEAPON_SG550:
+			performBuyWeapon("4", "8");
+			break;
+		case CS_WEAPON_SCOUT:
+			performBuyWeapon("4", "5");
+			break;
+		case CS_WEAPON_AWP:
+			performBuyWeapon("4", "6");
+			break;
+		case CS_WEAPON_MP5NAVY:
+			performBuyWeapon("3", "1");
+			break;
+		case CS_WEAPON_UMP45:
+			performBuyWeapon("3", "5");
+			break;
+		case CS_WEAPON_ELITE:
+			performBuyWeapon("1", "5");
+			break;              // T only
+		case CS_WEAPON_MAC10:
+			performBuyWeapon("3", "4");
+			break;              // T only
+		case CS_WEAPON_AUG:
+			performBuyWeapon("4", "4");
+			break;              // CT Only
+		case CS_WEAPON_FIVESEVEN:
+			performBuyWeapon("1", "6");
+			break;              // CT only
+		case CS_WEAPON_M4A1:
+			performBuyWeapon("4", "3");
+			break;              // CT Only
+		case CS_WEAPON_TMP:
+			performBuyWeapon("3", "2");
+			break;              // CT only
+		case CS_WEAPON_HEGRENADE:
+			performBuyWeapon("8", "4");
+			break;
+		case CS_WEAPON_XM1014:
+			performBuyWeapon("2", "2");
+			break;
+		case CS_WEAPON_SMOKEGRENADE:
+			performBuyWeapon("8", "5");
+			break;
+		case CS_WEAPON_USP:
+			performBuyWeapon("1", "1");
+			break;
+		case CS_WEAPON_GLOCK18:
+			performBuyWeapon("1", "2");
+			break;
+		case CS_WEAPON_M249:
+			performBuyWeapon("5", "1");
+			break;
+		case CS_WEAPON_M3:
+			performBuyWeapon("2", "1");
+			break;
+		case CS_WEAPON_G3SG1:
+			performBuyWeapon("4", "7");
+			break;
+		case CS_WEAPON_FLASHBANG:
+			performBuyWeapon("8", "3");
+			break;
+		case CS_WEAPON_P90:
+			performBuyWeapon("3", "3");
+			break;
 
-				// Armor
-			case CS_WEAPON_ARMOR_LIGHT:
-				performBuyWeapon("8", "1");
-				break;
-			case CS_WEAPON_ARMOR_HEAVY:
-				performBuyWeapon("8", "2");
-				break;
+			// Armor
+		case CS_WEAPON_ARMOR_LIGHT:
+			performBuyWeapon("8", "1");
+			break;
+		case CS_WEAPON_ARMOR_HEAVY:
+			performBuyWeapon("8", "2");
+			break;
 
-			case CS_DEFUSEKIT:
-				performBuyWeapon("8", "6");
-				break;
+		case CS_DEFUSEKIT:
+			performBuyWeapon("8", "6");
+			break;
 		}
 	}
 
@@ -2583,99 +2569,99 @@ void cBot::performBuyActions(const int weaponIdToBuy) {
 	else if (counterstrike == 1) { // FRASHMAN 30/08/04: redone switch block, it was full of errors
 		switch (weaponIdToBuy) {
 			//Pistols
-			case CS_WEAPON_GLOCK18:
-				performBuyWeapon("1", "1");
-				break;
-			case CS_WEAPON_USP:
-				performBuyWeapon("1", "2");
-				break;
-			case CS_WEAPON_P228:
-				performBuyWeapon("1", "3");
-				break;
-			case CS_WEAPON_DEAGLE:
-				performBuyWeapon("1", "4");
-				break;
-			case CS_WEAPON_FIVESEVEN:
-				performBuyWeapon("1", "5");
-				break;              // CT Only
-			case CS_WEAPON_ELITE:
-				performBuyWeapon("1", "5");
-				break;              // T Only
-				//ShotGUNS
-			case CS_WEAPON_M3:
-				performBuyWeapon("2", "1");
-				break;
-			case CS_WEAPON_XM1014:
-				performBuyWeapon("2", "2");
-				break;
-				//SMG
-			case CS_WEAPON_MAC10:
-				performBuyWeapon("3", "1");
-				break;               // T Only
-			case CS_WEAPON_TMP:
-				performBuyWeapon("3", "1");
-				break;              // CT Only
-			case CS_WEAPON_MP5NAVY:
-				performBuyWeapon("3", "2");
-				break;
-			case CS_WEAPON_UMP45:
-				performBuyWeapon("3", "3");
-				break;
-			case CS_WEAPON_P90:
-				performBuyWeapon("3", "4");
-				break;
-				//rifles
-			case CS_WEAPON_GALIL:
-				performBuyWeapon("4", "1");
-				break;              // T Only
-			case CS_WEAPON_FAMAS:
-				performBuyWeapon("4", "1");
-				break;              // CT Only
-			case CS_WEAPON_AK47:
-				performBuyWeapon("4", "2");
-				break;              // T Only
-			case CS_WEAPON_M4A1:
-				performBuyWeapon("4", "3");
-				break;              // CT Only
-			case CS_WEAPON_SG552:
-				performBuyWeapon("4", "4");
-				break;              // T Only
-			case CS_WEAPON_AUG:
-				performBuyWeapon("4", "4");
-				break;              // CT Only
-			case CS_WEAPON_SG550:
-				performBuyWeapon("4", "5");
-				break;              // CT Only
-			case CS_WEAPON_G3SG1:
-				performBuyWeapon("4", "6");
-				break;              // T Only
-				//machinegun
-			case CS_WEAPON_M249:
-				performBuyWeapon("5", "1");
-				break;
-				// equipment
-			case CS_WEAPON_ARMOR_LIGHT:
-				performBuyWeapon("8", "1");
-				break;
-			case CS_WEAPON_ARMOR_HEAVY:
-				performBuyWeapon("8", "2");
-				break;
-			case CS_WEAPON_FLASHBANG:
-				performBuyWeapon("8", "3");
-				break;
-			case CS_WEAPON_HEGRENADE:
-				performBuyWeapon("8", "4");
-				break;
-			case CS_WEAPON_SMOKEGRENADE:
-				performBuyWeapon("8", "5");
-				break;
-			case CS_WEAPON_SHIELD:
-				performBuyWeapon("8", "8");
-				break;
+		case CS_WEAPON_GLOCK18:
+			performBuyWeapon("1", "1");
+			break;
+		case CS_WEAPON_USP:
+			performBuyWeapon("1", "2");
+			break;
+		case CS_WEAPON_P228:
+			performBuyWeapon("1", "3");
+			break;
+		case CS_WEAPON_DEAGLE:
+			performBuyWeapon("1", "4");
+			break;
+		case CS_WEAPON_FIVESEVEN:
+			performBuyWeapon("1", "5");
+			break;              // CT Only
+		case CS_WEAPON_ELITE:
+			performBuyWeapon("1", "5");
+			break;              // T Only
+			//ShotGUNS
+		case CS_WEAPON_M3:
+			performBuyWeapon("2", "1");
+			break;
+		case CS_WEAPON_XM1014:
+			performBuyWeapon("2", "2");
+			break;
+			//SMG
+		case CS_WEAPON_MAC10:
+			performBuyWeapon("3", "1");
+			break;               // T Only
+		case CS_WEAPON_TMP:
+			performBuyWeapon("3", "1");
+			break;              // CT Only
+		case CS_WEAPON_MP5NAVY:
+			performBuyWeapon("3", "2");
+			break;
+		case CS_WEAPON_UMP45:
+			performBuyWeapon("3", "3");
+			break;
+		case CS_WEAPON_P90:
+			performBuyWeapon("3", "4");
+			break;
+			//rifles
+		case CS_WEAPON_GALIL:
+			performBuyWeapon("4", "1");
+			break;              // T Only
+		case CS_WEAPON_FAMAS:
+			performBuyWeapon("4", "1");
+			break;              // CT Only
+		case CS_WEAPON_AK47:
+			performBuyWeapon("4", "2");
+			break;              // T Only
+		case CS_WEAPON_M4A1:
+			performBuyWeapon("4", "3");
+			break;              // CT Only
+		case CS_WEAPON_SG552:
+			performBuyWeapon("4", "4");
+			break;              // T Only
+		case CS_WEAPON_AUG:
+			performBuyWeapon("4", "4");
+			break;              // CT Only
+		case CS_WEAPON_SG550:
+			performBuyWeapon("4", "5");
+			break;              // CT Only
+		case CS_WEAPON_G3SG1:
+			performBuyWeapon("4", "6");
+			break;              // T Only
+			//machinegun
+		case CS_WEAPON_M249:
+			performBuyWeapon("5", "1");
+			break;
+			// equipment
+		case CS_WEAPON_ARMOR_LIGHT:
+			performBuyWeapon("8", "1");
+			break;
+		case CS_WEAPON_ARMOR_HEAVY:
+			performBuyWeapon("8", "2");
+			break;
+		case CS_WEAPON_FLASHBANG:
+			performBuyWeapon("8", "3");
+			break;
+		case CS_WEAPON_HEGRENADE:
+			performBuyWeapon("8", "4");
+			break;
+		case CS_WEAPON_SMOKEGRENADE:
+			performBuyWeapon("8", "5");
+			break;
+		case CS_WEAPON_SHIELD:
+			performBuyWeapon("8", "8");
+			break;
 
-			case CS_DEFUSEKIT:
-				performBuyWeapon("8", "6");
-				break;
+		case CS_DEFUSEKIT:
+			performBuyWeapon("8", "6");
+			break;
 			//default: //Just in case they use pistols but buy MP5 [APG]RoboCop[CL]
 			//    performBuyWeapon("3", "2");
 			//   break;
@@ -2686,24 +2672,24 @@ void cBot::performBuyActions(const int weaponIdToBuy) {
 		if (iTeam == 2)  // counter
 		{
 			switch (weaponIdToBuy) {
-				case CS_WEAPON_SCOUT:
-					performBuyWeapon("4", "2");
-					break;
-				case CS_WEAPON_AWP:
-					performBuyWeapon("4", "6");
-					break;
-					//whats about nightvision? BuyWeapon (pBot, "8", "7")
+			case CS_WEAPON_SCOUT:
+				performBuyWeapon("4", "2");
+				break;
+			case CS_WEAPON_AWP:
+				performBuyWeapon("4", "6");
+				break;
+				//whats about nightvision? BuyWeapon (pBot, "8", "7")
 			}
 		} else                 // terror
 		{
 			switch (weaponIdToBuy) {
-				case CS_WEAPON_SCOUT:
-					performBuyWeapon("4", "3");
-					break;
-				case CS_WEAPON_AWP:
-					performBuyWeapon("4", "5");
-					break;
-					//whats about nightvision? BuyWeapon (pBot, "8", "6")
+			case CS_WEAPON_SCOUT:
+				performBuyWeapon("4", "3");
+				break;
+			case CS_WEAPON_AWP:
+				performBuyWeapon("4", "5");
+				break;
+				//whats about nightvision? BuyWeapon (pBot, "8", "6")
 			}
 		}
 	}                         // end of cs 1.6 part
@@ -2726,12 +2712,12 @@ void cBot::Memory() {
 	// we can hear them (estimated distance)).
 	if (pEnemyEdict == nullptr) {
 		Vector vHear = Vector(9999, 9999, 9999);
-		edict_t *pHearPlayer = nullptr;
+		edict_t* pHearPlayer = nullptr;
 
 		//f_walk_time = gpGlobals->time + 1;
 
 		for (int i = 1; i <= gpGlobals->maxClients; i++) {
-			edict_t *pPlayer = INDEXENT(i);
+			edict_t* pPlayer = INDEXENT(i);
 
 			// skip invalid players and skip self (i.e. this bot)
 			if (pPlayer && !pPlayer->free && pPlayer != pEdict) {
@@ -2747,15 +2733,15 @@ void cBot::Memory() {
 				if (FUNC_PlayerRuns(FUNC_PlayerSpeed(pPlayer))) {
 					// check distance
 					const float fDistance =
-							(pPlayer->v.origin - pEdict->v.origin).Length();
+						(pPlayer->v.origin - pEdict->v.origin).Length();
 
 					// estimated distance we can hear somebody
 					if (fDistance < BOT_HEARDISTANCE) {
 						// check if this 'hearing' vector is closer then our previous one
 						if (vHear != Vector(9999, 9999, 9999)) {
 							if (func_distance
-										(pEdict->v.origin,
-										 pPlayer->v.origin) <
+							(pEdict->v.origin,
+								pPlayer->v.origin) <
 								func_distance(pEdict->v.origin, vHear)) {
 								// this one is closer, thus more important
 								vHear = pPlayer->v.origin;
@@ -2767,23 +2753,23 @@ void cBot::Memory() {
 						}
 					}
 				}
-				
+
 				if (pPlayer->v.button & IN_ATTACK
 					&& (FUNC_EdictHoldsWeapon(pEdict) != CS_WEAPON_HEGRENADE
 						&& FUNC_EdictHoldsWeapon(pEdict) != CS_WEAPON_FLASHBANG
 						&& FUNC_EdictHoldsWeapon(pEdict) !=
-						   CS_WEAPON_SMOKEGRENADE)) {
+						CS_WEAPON_SMOKEGRENADE)) {
 					// check distance
 					const float fDistance =
-							(pPlayer->v.origin - pEdict->v.origin).Length();
+						(pPlayer->v.origin - pEdict->v.origin).Length();
 
 					// estimated distance we can hear somebody
 					if (fDistance < BOT_HEARFIREDISTANCE) {
 						// check if this 'hearing' vector is closer then our previous one
 						if (vHear != Vector(9999, 9999, 9999)) {
 							if (func_distance
-										(pEdict->v.origin,
-										 pPlayer->v.origin) <
+							(pEdict->v.origin,
+								pPlayer->v.origin) <
 								func_distance(pEdict->v.origin, vHear)) {
 								// this one is closer, thus more important
 								vHear = pPlayer->v.origin;
@@ -2799,15 +2785,15 @@ void cBot::Memory() {
 				if (pPlayer->v.button & IN_ATTACK2) {
 					// check distance
 					const float fDistance =
-							(pPlayer->v.origin - pEdict->v.origin).Length();
+						(pPlayer->v.origin - pEdict->v.origin).Length();
 
 					// estimated distance we can hear somebody
 					if (fDistance < BOT_HEARDISTANCE) {
 						// check if this 'hearing' vector is closer then our previous one
 						if (vHear != Vector(9999, 9999, 9999)) {
 							if (func_distance
-										(pEdict->v.origin,
-										 pPlayer->v.origin) <
+							(pEdict->v.origin,
+								pPlayer->v.origin) <
 								func_distance(pEdict->v.origin, vHear)) {
 								// this one is closer, thus more important
 								vHear = pPlayer->v.origin;
@@ -2829,8 +2815,8 @@ void cBot::Memory() {
 
 				// determine fuzzyness by distance:
 				int iFuzz =
-						static_cast<int>(func_distance(pEdict->v.origin, vHear) /
-							BOT_HEARDISTANCE) * 250;
+					static_cast<int>(func_distance(pEdict->v.origin, vHear) /
+						BOT_HEARDISTANCE) * 250;
 
 				// skill depended
 				iFuzz /= bot_skill + 1;
@@ -2841,14 +2827,14 @@ void cBot::Memory() {
 				const float randZ = RANDOM_LONG(-iFuzz, iFuzz);
 
 				vHear = vHear + Vector(randX, randY, randZ);
-				
+
 				TraceResult tr;
 
 				UTIL_TraceHull(pEdict->v.origin, vHear, dont_ignore_monsters,
-							   point_hull, pEdict, &tr);
+					point_hull, pEdict, &tr);
 
 				int iNodeHearPlayer =
-						NodeMachine.getClosestNode(vHear, NODE_ZONE * 2, pHearPlayer);
+					NodeMachine.getClosestNode(vHear, NODE_ZONE * 2, pHearPlayer);
 
 				// if nothing hit:
 				if (tr.flFraction >= 1.0f) {
@@ -2897,30 +2883,30 @@ void cBot::Memory() {
 			}
 		} else {
 			vEar = Vector(9999, 9999, 9999);
-//
-//            // check for any 'beeps' of the bomb!
-//            if (isCounterTerrorist() && Game.bBombPlanted) {
-//                // find the bomb vector
-//                edict_t *pent = NULL;
-//                Vector vC4 = Vector(9999, 9999, 9999);
-//                while ((pent = UTIL_FindEntityByClassname(pent, "grenade")) != NULL) {
-//                    if (UTIL_GetGrenadeType(pent) == 4)      // It is a C4
-//                    {
-//                        vC4 = pent->v.origin; // store origin
-//                        break;        // done our part now
-//                    }
-//                }                   // --- find the c4
-//
-//                if (vC4 != Vector(9999, 9999, 9999)) {
-//
-//                    if (func_distance(vC4, NodeMachine.node_vector(iGoalNode)) > 100 &&
-//                        func_distance(pEdict->v.origin, vC4) < 1024) {
-//                        // set new goal node
-//                        setGoalNode(NodeMachine.getCloseNode(vC4, NODE_ZONE, NULL));
-//                        forgetPath();
-//                    }
-//                }
-//            }
+			//
+			//            // check for any 'beeps' of the bomb!
+			//            if (isCounterTerrorist() && Game.bBombPlanted) {
+			//                // find the bomb vector
+			//                edict_t *pent = NULL;
+			//                Vector vC4 = Vector(9999, 9999, 9999);
+			//                while ((pent = UTIL_FindEntityByClassname(pent, "grenade")) != NULL) {
+			//                    if (UTIL_GetGrenadeType(pent) == 4)      // It is a C4
+			//                    {
+			//                        vC4 = pent->v.origin; // store origin
+			//                        break;        // done our part now
+			//                    }
+			//                }                   // --- find the c4
+			//
+			//                if (vC4 != Vector(9999, 9999, 9999)) {
+			//
+			//                    if (func_distance(vC4, NodeMachine.node_vector(iGoalNode)) > 100 &&
+			//                        func_distance(pEdict->v.origin, vC4) < 1024) {
+			//                        // set new goal node
+			//                        setGoalNode(NodeMachine.getCloseNode(vC4, NODE_ZONE, NULL));
+			//                        forgetPath();
+			//                    }
+			//                }
+			//            }
 		}
 
 	} else {
@@ -3019,17 +3005,17 @@ void cBot::ThinkAboutGoals() {
 	// in Act() we find the 'acting' code when timers above are set.
 }
 
-void cBot::rememberWhichHostageToRescue(edict_t *pHostage) {
+void cBot::rememberWhichHostageToRescue(edict_t* pHostage) {
 	this->pBotHostage = pHostage;
 }
 
-edict_t * cBot::getHostageToRescue() const
+edict_t* cBot::getHostageToRescue() const
 {
 	return pBotHostage;
 }
 
-edict_t * cBot::findHostageToRescue() {
-	edict_t *pent = nullptr;
+edict_t* cBot::findHostageToRescue() {
+	edict_t* pent = nullptr;
 
 	// Search for all hostages in the game
 	while ((pent = UTIL_FindEntityByClassname(pent, "hostage_entity")) != nullptr) {
@@ -3154,7 +3140,7 @@ void cBot::Think() {
 		rprint("Dead, need to re-initialize");
 
 		// AUTOSKILL
-		const cBot *botPointerOfKiller = UTIL_GetBotPointer(killer_edict);
+		const cBot* botPointerOfKiller = UTIL_GetBotPointer(killer_edict);
 
 		// not killed by a fellow bot, presumably a human player
 		if (botPointerOfKiller == nullptr) {
@@ -3173,11 +3159,11 @@ void cBot::Think() {
 				char msg[128];
 				if (Game.iDeathsBroadcasting == BROADCAST_DEATHS_FULL)
 					snprintf(msg, sizeof(msg),
-							"You have killed a RealBot!\n\nName:%s\nSkill:%d\n",
-							name, bot_skill);
+						"You have killed a RealBot!\n\nName:%s\nSkill:%d\n",
+						name, bot_skill);
 				else
 					snprintf(msg, sizeof(msg), "You have killed a RealBot named %s!",
-							name);
+						name);
 
 				HUD_DrawString(r, g, b, msg, killer_edict);
 			}
@@ -3207,7 +3193,7 @@ void cBot::Think() {
 						// we should say something now?
 						int iMax = -1;
 
-						for (const char (&tc)[128] : ChatEngine.ReplyBlock[99].sentence)
+						for (const char(&tc)[128] : ChatEngine.ReplyBlock[99].sentence)
 						{
 							if (tc[0] != '\0') iMax++;
 						}
@@ -3325,7 +3311,7 @@ void cBot::Think() {
 		rprint_trace("Think()", "Blinded");
 		return;
 	}
-	
+
 	// NEW: When round time is over and still busy playing, kill bots
 	const float roundTimeInSeconds = CVAR_GET_FLOAT("mp_roundtime") * 60.0f;
 	const float freezeTimeCVAR = CVAR_GET_FLOAT("mp_freezetime");
@@ -3354,7 +3340,7 @@ void cBot::Think() {
 		vHead = vBody = pEdict->v.origin;
 
 		// find any spawnpoint to look at:
-		edict_t *pent = nullptr;
+		edict_t* pent = nullptr;
 
 		if (isCounterTerrorist()) {
 			while ((pent = UTIL_FindEntityByClassname(pent, "info_player_start")) != nullptr) {
@@ -3384,9 +3370,14 @@ void cBot::Think() {
 	// **---**---**---**---**---**---**
 	// MAIN STATE: We have no enemy...
 	// **---**---**---**---**---**---**
-	if (!hasEnemy()) {
+	if (!hasEnemy() && pBreakableEdict == nullptr) {
 
 		if (!Game.bDoNotShoot) {
+			FUNC_FindBreakable(this);
+			if (pBreakableEdict != nullptr) {
+				Combat(); // Attack the breakable
+				return;
+			}
 			InteractWithPlayers();
 		}
 
@@ -3421,11 +3412,11 @@ void cBot::Think() {
 			&& f_update_weapon_time < gpGlobals->time) {
 			if (iPrimaryWeapon > -1)
 				UTIL_SelectItem(pEdict,
-								UTIL_GiveWeaponName(iPrimaryWeapon));
+					UTIL_GiveWeaponName(iPrimaryWeapon));
 
 			else                // pick secondary
 				UTIL_SelectItem(pEdict,
-								UTIL_GiveWeaponName(iSecondaryWeapon));
+					UTIL_GiveWeaponName(iSecondaryWeapon));
 			f_update_weapon_time = gpGlobals->time + 0.7f;
 		}
 
@@ -3469,33 +3460,33 @@ void cBot::checkOfHostagesStillFollowMe() {
 	if (fCheckHostageStatusTimer > gpGlobals->time) return;
 	fCheckHostageStatusTimer = gpGlobals->time + 5.0f;
 
-////    this->rprint("checkOfHostagesStillFollowMe - START");
-//    if (hostage1) {
-//        if (!isHostageRescued(this, hostage1) && FUNC_EdictIsAlive(hostage1) && !canSeeEntity(hostage1) && getDistanceTo(hostage1->v.origin) > NODE_ZONE*2.5) {
-//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage1");
-//            forgetHostage(hostage1);
-//        }
-//    }
-//    if (hostage2) {
-//        if (!isHostageRescued(this, hostage2) && FUNC_EdictIsAlive(hostage2) && !canSeeEntity(hostage2) && getDistanceTo(hostage2->v.origin) > NODE_ZONE*2.5) {
-//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage2");
-//            forgetHostage(hostage2);
-//        }
-//    }
-//    if (hostage3) {
-//        if (!isHostageRescued(this, hostage3) && FUNC_EdictIsAlive(hostage3) && !canSeeEntity(hostage3) && getDistanceTo(hostage3->v.origin) > NODE_ZONE*2.5) {
-//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage3");
-//            forgetHostage(hostage3);
-//        }
-//    }
-//
-//    if (hostage4) {
-//        if (!isHostageRescued(this, hostage4) && FUNC_EdictIsAlive(hostage4) && !canSeeEntity(hostage4) && getDistanceTo(hostage4->v.origin) > NODE_ZONE*2.5) {
-//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage4");
-//            forgetHostage(hostage4);
-//        }
-//    }
-//    rprint("checkOfHostagesStillFollowMe - END");
+	////    this->rprint("checkOfHostagesStillFollowMe - START");
+	//    if (hostage1) {
+	//        if (!isHostageRescued(this, hostage1) && FUNC_EdictIsAlive(hostage1) && !canSeeEntity(hostage1) && getDistanceTo(hostage1->v.origin) > NODE_ZONE*2.5) {
+	//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage1");
+	//            forgetHostage(hostage1);
+	//        }
+	//    }
+	//    if (hostage2) {
+	//        if (!isHostageRescued(this, hostage2) && FUNC_EdictIsAlive(hostage2) && !canSeeEntity(hostage2) && getDistanceTo(hostage2->v.origin) > NODE_ZONE*2.5) {
+	//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage2");
+	//            forgetHostage(hostage2);
+	//        }
+	//    }
+	//    if (hostage3) {
+	//        if (!isHostageRescued(this, hostage3) && FUNC_EdictIsAlive(hostage3) && !canSeeEntity(hostage3) && getDistanceTo(hostage3->v.origin) > NODE_ZONE*2.5) {
+	//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage3");
+	//            forgetHostage(hostage3);
+	//        }
+	//    }
+	//
+	//    if (hostage4) {
+	//        if (!isHostageRescued(this, hostage4) && FUNC_EdictIsAlive(hostage4) && !canSeeEntity(hostage4) && getDistanceTo(hostage4->v.origin) > NODE_ZONE*2.5) {
+	//            rprint_trace("checkOfHostagesStillFollowMe", "lost track of hostage4");
+	//            forgetHostage(hostage4);
+	//        }
+	//    }
+	//    rprint("checkOfHostagesStillFollowMe - END");
 }
 
 void cBot::clearHostages() {
@@ -3579,9 +3570,9 @@ void cBot::UpdateStatus() {
 	// Set max speed and such when CS 1.6
 	if (counterstrike == 1) {
 		f_max_speed = pEdict->v.maxspeed;
-//        char msg[255];
-//        sprintf(msg, "f_max_speed set to %f", f_max_speed);
-//        rprint_trace("UpdateStatus", msg);
+		//        char msg[255];
+		//        sprintf(msg, "f_max_speed set to %f", f_max_speed);
+		//        rprint_trace("UpdateStatus", msg);
 		bot_health = static_cast<int>(pEdict->v.health);
 		bot_armor = static_cast<int>(pEdict->v.armorvalue);
 	}
@@ -3833,14 +3824,14 @@ bool BotRadioAction() {
 }
 
 // Is entity visible? (from Entity view)
-bool EntityIsVisible(edict_t *pEntity, const Vector& dest) {
+bool EntityIsVisible(edict_t* pEntity, const Vector& dest) {
 
 	//DebugOut("bot: EntityIsVisible()\n");
 	TraceResult tr;
 
 	// trace a line from bot's eyes to destination...
 	UTIL_TraceLine(pEntity->v.origin + pEntity->v.view_ofs, dest,
-				   dont_ignore_monsters, pEntity->v.pContainingEntity, &tr);
+		dont_ignore_monsters, pEntity->v.pContainingEntity, &tr);
 
 	// check if line of sight to object is not blocked (i.e. visible)
 	if (tr.flFraction >= 1.0f)
@@ -3851,7 +3842,7 @@ bool EntityIsVisible(edict_t *pEntity, const Vector& dest) {
 }
 
 // Can see Edict?
-bool cBot::canSeeEntity(edict_t *pEntity) const
+bool cBot::canSeeEntity(edict_t* pEntity) const
 {
 	if (pEntity == nullptr) return false;
 
@@ -3878,7 +3869,7 @@ bool cBot::canSeeEntity(edict_t *pEntity) const
  * @return
  */
 float cBot::getDistanceTo(const int nodeIndex) {
-	const tNode *nodePtr = NodeMachine.getNode(nodeIndex);
+	const tNode* nodePtr = NodeMachine.getNode(nodeIndex);
 	if (nodePtr != nullptr) {
 		return getDistanceTo(nodePtr->origin);
 	}
@@ -3896,7 +3887,7 @@ float cBot::getDistanceTo(const Vector& vDest) const
 	return func_distance(pEdict->v.origin, vDest);
 }
 
-bool cBot::isUsingHostage(edict_t *pHostage) {
+bool cBot::isUsingHostage(edict_t* pHostage) {
 	if (pHostage == nullptr) return false;
 
 	// checks if the current pEdict is already 'in use'
@@ -3924,27 +3915,27 @@ bool cBot::isUsingHostage(edict_t *pHostage) {
 	return false;
 }
 
-void cBot::forgetHostage(edict_t *pHostage) {
+void cBot::forgetHostage(edict_t* pHostage) {
 	// these are the hostages we are rescueing (ie, they are following this bot)
-	if (hostage1 == pHostage)  {
+	if (hostage1 == pHostage) {
 		rprint("forgetHostage", "hostage1");
 		hostage1 = nullptr;
 	}
-	if (hostage2 == pHostage)  {
+	if (hostage2 == pHostage) {
 		rprint("forgetHostage", "hostage2");
 		hostage2 = nullptr;
 	}
-	if (hostage3 == pHostage)  {
+	if (hostage3 == pHostage) {
 		rprint("forgetHostage", "hostage3");
 		hostage3 = nullptr;
 	}
-	if (hostage4 == pHostage)  {
+	if (hostage4 == pHostage) {
 		rprint("forgetHostage", "hostage4");
 		hostage4 = nullptr;
 	}
 
 	// this is the hostage we have taken interest in
-	if (pBotHostage == pHostage)  {
+	if (pBotHostage == pHostage) {
 		rprint("forgetHostage", "pBotHostage");
 		pBotHostage = nullptr;
 	}
@@ -3975,7 +3966,7 @@ bool cBot::canSeeVector(const Vector& vDest) const
 
 	if (tr.flFraction < 1.0f)
 		return false;
-	
+
 	return true;
 }
 
@@ -3998,13 +3989,13 @@ bool cBot::hasShieldDrawn() const
 }
 
 /*
- BotThink() 
+ BotThink()
  This function is the very general/main/simplified thinking function of the bot.
  Do NOT add/remove/change code here! If you want to give the bot information to
  work with. Put it in UpdateStatus(). When the bot has to think about it, do it
  int Think() and everything else (when all is set, how to 'do' it) in Act().
  */
-void BotThink(cBot *pBot) {
+void BotThink(cBot* pBot) {
 	// STEP 1: Update status
 	pBot->UpdateStatus();
 
@@ -4025,7 +4016,7 @@ void BotThink(cBot *pBot) {
 	snprintf(msg, sizeof(msg), "moveSpeed %f, strafeSpeed %f, msecVal %f", pBot->f_move_speed, pBot->f_strafe_speed, msecval);
 	pBot->rprint_trace("BotThink/pfnRunPlayerMove", msg);
 	g_engfuncs.pfnRunPlayerMove(pBot->pEdict, pBot->vecMoveAngles, pBot->f_move_speed, pBot->f_strafe_speed,
-								upMove, pBot->pEdict->v.button, 0, msecval);
+		upMove, pBot->pEdict->v.button, 0, msecval);
 
 	constexpr float fUpdateInterval = 1.0f / 60.0f; // update at 60 fps
 	pBot->fUpdateTime = gpGlobals->time + fUpdateInterval;
@@ -4038,30 +4029,30 @@ void BotThink(cBot *pBot) {
 void cBot::Dump() {
 	char buffer[181];
 	const int iCurrentNode =
-			NodeMachine.getClosestNode(pEdict->v.origin, (NODE_ZONE * 2), pEdict);
+		NodeMachine.getClosestNode(pEdict->v.origin, (NODE_ZONE * 2), pEdict);
 
 	snprintf(buffer, 180,
-			  "%s (#%d %s): timers, now= %.0f, c4_time=%.0f, camp_time=%.0f, wait_time=%.0f, cover_time=%.0f, wander=%.0f, MoveToNodeTime=%.0f\n",
-			  name, iBotIndex, (iTeam == 1) ? "T" : "CT", gpGlobals->time,
-			  f_c4_time, f_camp_time, f_wait_time, f_cover_time, fWanderTime, fMoveToNodeTime);
+		"%s (#%d %s): timers, now= %.0f, c4_time=%.0f, camp_time=%.0f, wait_time=%.0f, cover_time=%.0f, wander=%.0f, MoveToNodeTime=%.0f\n",
+		name, iBotIndex, (iTeam == 1) ? "T" : "CT", gpGlobals->time,
+		f_c4_time, f_camp_time, f_wait_time, f_cover_time, fWanderTime, fMoveToNodeTime);
 	rblog(buffer);
 	snprintf(buffer, 180, "  GoalNode=%d, CurrentNode=%d, iPathFlags=",
-			  iGoalNode, iCurrentNode);
+		iGoalNode, iCurrentNode);
 	switch (iPathFlags) {
-		case PATH_NONE:
-			std::strncat(buffer, "PATH_NONE ", 180);
-			break;
-		case PATH_DANGER:
-			std::strncat(buffer, "PATH_DANGER ", 180);
-			break;
-		case PATH_CONTACT:
-			std::strncat(buffer, "PATH_CONTACT ", 180);
-			break;
-		case PATH_CAMP:
-			std::strncat(buffer, "PATH_CAMP ", 180);
-			break;
-		default:
-			std::strncat(buffer, "???", 180);
+	case PATH_NONE:
+		std::strncat(buffer, "PATH_NONE ", 180);
+		break;
+	case PATH_DANGER:
+		std::strncat(buffer, "PATH_DANGER ", 180);
+		break;
+	case PATH_CONTACT:
+		std::strncat(buffer, "PATH_CONTACT ", 180);
+		break;
+	case PATH_CAMP:
+		std::strncat(buffer, "PATH_CAMP ", 180);
+		break;
+	default:
+		std::strncat(buffer, "???", 180);
 	}
 	std::strncat(buffer, "\n", 180);
 	rblog(buffer);
@@ -4093,20 +4084,23 @@ void cBot::clearHostageToRescueTarget() {
 }
 
 // Finds a free hostage pointer and assigns it.
-void cBot::rememberHostageIsFollowingMe(edict_t *pHostage) {
+void cBot::rememberHostageIsFollowingMe(edict_t* pHostage) {
 	if (pHostage == nullptr) {
 		rprint_trace("rememberHostageIsFollowingMe", "ERROR assigning NULL pHostage pointer!?");
 	}
 	if (hostage1 == nullptr) {
 		rprint_trace("rememberHostageIsFollowingMe", "hostage1 slot is free.");
 		hostage1 = pHostage;
-	} else if (hostage2 == nullptr) {
+	}
+	else if (hostage2 == nullptr) {
 		rprint_trace("rememberHostageIsFollowingMe", "hostage2 slot is free.");
 		hostage2 = pHostage;
-	} else if (hostage3 == nullptr) {
+	}
+	else if (hostage3 == nullptr) {
 		rprint_trace("rememberHostageIsFollowingMe", "hostage3 slot is free.");
 		hostage3 = pHostage;
-	} else if (hostage4 == nullptr) {
+	}
+	else if (hostage4 == nullptr) {
 		rprint_trace("rememberHostageIsFollowingMe", "hostage4 slot is free.");
 		hostage4 = pHostage;
 	}
@@ -4119,7 +4113,7 @@ void cBot::checkIfHostagesAreRescued() {
 	if (isHostageRescued(this, hostage4))  forgetHostage(hostage4);
 }
 
-bool cBot::isOnSameTeamAs(const cBot *pBot) const
+bool cBot::isOnSameTeamAs(const cBot* pBot) const
 {
 	if (pBot == nullptr) return false;
 	return pBot->iTeam == this->iTeam;
@@ -4128,13 +4122,13 @@ bool cBot::isOnSameTeamAs(const cBot *pBot) const
 bool cBot::wantsToBuyStuff() const
 {
 	return buy_secondary == true ||
-		   buy_primary == true ||
-		   buy_ammo_primary == true ||
-		   buy_ammo_secondary == true ||
-		   buy_armor == true ||
-		   buy_defusekit == true ||
-		   buy_grenade == true ||
-		   buy_flashbang > 0;
+		buy_primary == true ||
+		buy_ammo_primary == true ||
+		buy_ammo_secondary == true ||
+		buy_armor == true ||
+		buy_defusekit == true ||
+		buy_grenade == true ||
+		buy_flashbang > 0;
 }
 
 bool cBot::isUsingConsole() const
@@ -4145,20 +4139,20 @@ bool cBot::isUsingConsole() const
 bool cBot::shouldBeAbleToMove() const
 {
 	return  !isDead() &&
-			!isFreezeTime() &&
-			!shouldCamp() &&
-			!shouldWait() &&
-			!shouldActWithC4();
-			// !isDucking() &&
-			// !isJumping();
+		!isFreezeTime() &&
+		!shouldCamp() &&
+		!shouldWait() &&
+		!shouldActWithC4();
+	// !isDucking() &&
+	// !isJumping();
 }
 
-edict_t *cBot::getEntityBetweenMeAndCurrentPathNodeToHeadFor() const
+edict_t* cBot::getEntityBetweenMeAndCurrentPathNodeToHeadFor() const
 {
 	TraceResult tr;
 	const Vector vOrigin = pEdict->v.origin;
 
-	const tNode *node = NodeMachine.getNode(getCurrentPathNodeToHeadFor());
+	const tNode* node = NodeMachine.getNode(getCurrentPathNodeToHeadFor());
 
 	//Using TraceHull to detect de_aztec bridge and other entities.
 	//DONT_IGNORE_MONSTERS, we reached it only when there are no other bots standing in our way!
@@ -4182,7 +4176,7 @@ edict_t *cBot::getEntityBetweenMeAndCurrentPathNodeToHeadFor() const
  */
 float cBot::getDistanceToNextNode() const
 {
-	const tNode *node = NodeMachine.getNode(getCurrentPathNodeToHeadFor());
+	const tNode* node = NodeMachine.getNode(getCurrentPathNodeToHeadFor());
 	if (node) {
 		return getDistanceTo(node->origin);
 	}
@@ -4190,14 +4184,14 @@ float cBot::getDistanceToNextNode() const
 }
 
 void cBot::setBodyToNode(const int nodeIndex) {
-	const tNode *node = NodeMachine.getNode(nodeIndex);
+	const tNode* node = NodeMachine.getNode(nodeIndex);
 	if (node) {
 		vBody = node->origin;
 	}
 }
 
 void cBot::lookAtNode(const int nodeIndex) {
-	const tNode *node = NodeMachine.getNode(nodeIndex);
+	const tNode* node = NodeMachine.getNode(nodeIndex);
 	if (node) {
 		vHead = node->origin;
 	}
@@ -4229,9 +4223,10 @@ void cBot::increaseTimeToMoveToNode(const float timeInSeconds) {
 		const float timeToMoveToNodeRemaining = getMoveToNodeTimeRemaining();
 		char msg[255] = {};
 		snprintf(msg, sizeof(msg), "increaseTimeToMoveToNode with %f for the %d time, making time to move to node remaining %f.",
-		         timeInSeconds, nodeTimeIncreasedAmount, timeToMoveToNodeRemaining);
+			timeInSeconds, nodeTimeIncreasedAmount, timeToMoveToNodeRemaining);
 		rprint_trace("increaseTimeToMoveToNode", msg);
-	} else {
+	}
+	else {
 		rprint_trace("increaseTimeToMoveToNode", "Refused to increase time");
 	}
 }
@@ -4330,7 +4325,7 @@ bool cBot::isWalking() {
 	return b;
 }
 
-void cBot::doJump(const Vector &vector) {
+void cBot::doJump(const Vector& vector) {
 	rprint_trace("doJump", "With vector");
 	// stay focussed with body and head to this vector
 	this->vHead = vector;
@@ -4398,14 +4393,14 @@ void cBot::doDuckJump(const Vector& vector) {
 	doDuckJump();
 }
 
-void cBot::doDuckJump(){
+void cBot::doDuckJump() {
 	rprint_trace("doDuckJump", "no vector");
-	UTIL_BotPressKey(this, IN_DUCK); 
+	UTIL_BotPressKey(this, IN_DUCK);
 	this->f_hold_duck = gpGlobals->time + 0.75f;
 
 	UTIL_BotPressKey(this, IN_JUMP);
 	this->f_jump_time = gpGlobals->time + 0.75f;
-	
+
 	this->increaseTimeToMoveToNode(0.75f);
 }
 
@@ -4413,7 +4408,7 @@ void cBot::doDuckJump(){
 // in order to properly duck jump.
 bool cBot::isDuckJumping() {
 	const bool b = keyPressed(IN_JUMP) && keyPressed(IN_DUCK) ||
-		this->f_hold_duck > gpGlobals->time && this->f_jump_time > gpGlobals->time ;
+		this->f_hold_duck > gpGlobals->time && this->f_jump_time > gpGlobals->time;
 	if (b) {
 		rprint_trace("isDuckJumping", "Yes I am DuckJumping");
 	}
