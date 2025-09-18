@@ -759,8 +759,7 @@ void cBot::FightEnemy() {
 				if (zoomed > ZOOM_TWICE)
 					zoomed = ZOOM_NONE;
 			}
-		}
-		else if (FUNC_BotHoldsZoomWeapon(this)) {
+		} else if (FUNC_BotHoldsZoomWeapon(this)) {
 			if (zoomed < ZOOM_ONCE && f_allow_keypress < gpGlobals->time) {
 				UTIL_BotPressKey(this, IN_ATTACK2);
 				f_allow_keypress = gpGlobals->time + 0.7f;
@@ -780,15 +779,13 @@ void cBot::FightEnemy() {
 				if (FUNC_DoRadio(this)) {
 					UTIL_BotRadioMessage(this, 3, "3", "");  // need backup
 				}
-			}
-			else {
+			} else {
 				// DECIDE: Should we take cover or not.
 				if (FUNC_ShouldTakeCover(this)) {
 					FindCover();
 				}
 			}
-		}
-		else {
+		} else {
 
 		}
 
@@ -803,8 +800,7 @@ void cBot::FightEnemy() {
 			rprint_trace("FightEnemy()", "Lost enemy out of sight, forgetting path and goal");
 			forgetPath();
 			forgetGoal();
-		}
-		else {
+		} else {
 
 			// When we have the enemy for the first time out of sight
 			// we calculate a path to the last seen position
@@ -818,8 +814,7 @@ void cBot::FightEnemy() {
 				}
 
 				bFirstOutOfSight = true;
-			}
-			else {
+			} else {
 				if (!hasGoal()) {
 					rprint("Enemy out of sight and no goal, forgetting enemy");
 					forgetEnemy();
@@ -974,8 +969,7 @@ void cBot::PickBestWeapon() {
 			UTIL_BotPressKey(this, IN_RELOAD);
 			f_update_weapon_time = gpGlobals->time + 0.7f;  // update timer
 			// return;
-		}
-		else {
+		} else {
 			// Thanks to dstruct2k for easy ctrl-c/v, i optimized the code
 			// a bit though. Btw, distance 600 is too far for slashing :)
 
@@ -988,8 +982,7 @@ void cBot::PickBestWeapon() {
 				// select primary weapon
 				UTIL_SelectItem(pEdict, UTIL_GiveWeaponName(iPrimaryWeapon));       // select the primary
 				//return;
-			}
-			else {
+			} else {
 
 				if (iSecondaryWeapon > -1 && current_weapon.iId != iSecondaryWeapon &&
 					// that's not the current, empty gun
@@ -997,8 +990,7 @@ void cBot::PickBestWeapon() {
 				{
 					UTIL_SelectItem(pEdict, UTIL_GiveWeaponName(iSecondaryWeapon));  // select the secondary
 					//return;
-				}
-				else {
+				} else {
 					if (isOwningWeapon(CS_WEAPON_KNIFE) &&  // we have a knife (for non-knife maps)
 						!isHoldingWeapon(CS_WEAPON_KNIFE))  // but we do not carry it
 					{
@@ -1041,8 +1033,7 @@ void cBot::FireWeapon() {
 			f_sec_weapon = gpGlobals->time + RANDOM_FLOAT(0.05f, 0.2f);
 		}
 
-	}
-	else if (CarryWeaponType() == PRIMARY) {
+	} else if (CarryWeaponType() == PRIMARY) {
 		// We may shoot, use shooting rate.
 		// TODO TODO TODO: Add shooting rates in BUYTABLE.INI
 		if (f_prim_weapon < gpGlobals->time) {
@@ -1064,8 +1055,7 @@ void cBot::FireWeapon() {
 					f_prim_weapon = gpGlobals->time + f_burst;
 
 					f_shoot_wait_time = gpGlobals->time + (f_burst * 3);
-				}
-				else              // other weapons
+				} else              // other weapons
 				{
 					float f_burst = 0.1f;
 					if (fDistance > 300 && bot_skill < 6) {
@@ -1098,8 +1088,7 @@ void cBot::FireWeapon() {
 				// COVER: Take cover, using tracelines all the time!
 				FindCover();
 			}
-		}
-		else if (f_gren_time + 0.5f < gpGlobals->time) {
+		} else if (f_gren_time + 0.5f < gpGlobals->time) {
 			// NOTE: Should not happen, a bot cannot 'forget' this...
 			f_gren_time = gpGlobals->time + 1;
 		}
@@ -1117,14 +1106,12 @@ void cBot::FireWeapon() {
 		if (fDistance > 550) {
 			if (hasShieldDrawn()) {
 				// when the enemy is far away, we keep it
-			}
-			else {
+			} else {
 				// draw shield!
 				UTIL_BotPressKey(this, IN_ATTACK2); // secondary attack makes shield draw
 				f_allow_keypress = gpGlobals->time + 0.7f;
 			}
-		}
-		else {
+		} else {
 			// get weapon here.
 			if (hasShieldDrawn() && f_allow_keypress < gpGlobals->time) {
 				rblog
@@ -1133,8 +1120,7 @@ void cBot::FireWeapon() {
 				f_allow_keypress = gpGlobals->time + 0.7f;
 			}
 		}
-	}
-	else {
+	} else {
 		// debug print
 		REALBOT_PRINT(this, "FireWeapon()", "Unknown weapon");
 	}
@@ -1198,8 +1184,7 @@ void cBot::Combat() {
 				char msg[128];
 				if (Game.iDeathsBroadcasting == BROADCAST_DEATHS_FULL) {
 					snprintf(msg, sizeof(msg), "A RealBot has killed you!\n\nName:%s\nSkill:%d\n", name, bot_skill);
-				}
-				else {
+				} else {
 					snprintf(msg, sizeof(msg), "A RealBot named %s has killed you!", name);
 				}
 
@@ -1293,8 +1278,7 @@ void cBot::FindCover() {
 			if (cover_vect != Vector(9999, 9999, 9999)) {
 				if (RANDOM_LONG(0, 100) < 50)
 					cover_vect = v_left;
-			}
-			else
+			} else
 				cover_vect = v_left;
 		}
 	}
@@ -1320,8 +1304,7 @@ void cBot::FindCover() {
 			if (cover_vect != Vector(9999, 9999, 9999)) {
 				if (RANDOM_LONG(0, 100) < 50)
 					cover_vect = v_right;
-			}
-			else
+			} else
 				cover_vect = v_right;
 		}
 	}
@@ -1341,8 +1324,7 @@ void cBot::FindCover() {
 			if (cover_vect != Vector(9999, 9999, 9999)) {
 				if (RANDOM_LONG(0, 100) < 50)
 					cover_vect = v_left;
-			}
-			else
+			} else
 				cover_vect = v_left;
 		}
 	}
@@ -1365,8 +1347,7 @@ void cBot::FindCover() {
 		createPath(iCoverNode);
 		f_cover_time = gpGlobals->time + 8.0f;
 		bTakenCover = true;
-	}
-	else {
+	} else {
 
 		// --------------------------------------------------
 		// If cover_vect is found, we find a node close to it
@@ -1449,8 +1430,7 @@ void cBot::InteractWithFriends() {
 				}
 
 				if (bCanSeePlayer) {}
-			}
-			else                 // it is a teammate, but it is human (or a different bot)
+			} else                 // it is a teammate, but it is human (or a different bot)
 			{
 				// when firing
 
@@ -1494,8 +1474,7 @@ void cBot::InteractWithPlayers() {
 			}
 			if (zoomed > ZOOM_TWICE)
 				zoomed = ZOOM_NONE;
-		}
-		else if (FUNC_BotHoldsZoomWeapon(this)) {
+		} else if (FUNC_BotHoldsZoomWeapon(this)) {
 
 			// Unzoom (for other guns with only 1 zoom)
 			if (zoomed > ZOOM_NONE && f_allow_keypress < gpGlobals->time) {
@@ -1503,8 +1482,7 @@ void cBot::InteractWithPlayers() {
 				f_allow_keypress = gpGlobals->time + 0.7f;
 				zoomed = ZOOM_NONE;
 			}
-		}
-		else {
+		} else {
 
 			// For any weapon that has a silencer (the colt for example), use it if we want that.
 			if (isHoldingWeapon(CS_WEAPON_M4A1))
@@ -1744,24 +1722,21 @@ vec_t cBot::ReturnTurnedAngle(float speed, float current, const float ideal) {
 
 		else
 			current += speed;
-	}
-	else if (current >= 0.0f && ideal < 0.0f) {
+	} else if (current >= 0.0f && ideal < 0.0f) {
 		current_180 = current - 180.0f;
 		if (current_180 > ideal)
 			current += speed;
 
 		else
 			current -= speed;
-	}
-	else if (current < 0 && ideal >= 0) {
+	} else if (current < 0 && ideal >= 0) {
 		current_180 = current + 180;
 		if (current_180 > ideal)
 			current += speed;
 
 		else
 			current -= speed;
-	}
-	else                         // (current < 0) && (ideal < 0)  both negative
+	} else                         // (current < 0) && (ideal < 0)  both negative
 	{
 		if (current > ideal)
 			current -= speed;
@@ -1867,8 +1842,7 @@ bool cBot::Defuse() {
 			UTIL_BotPressKey(this, IN_USE);
 		}
 
-	}
-	else {
+	} else {
 		rprint_trace("Defuse()", "I can see C4, but it is out of reach.");
 		const int iC4Node = NodeMachine.getClosestNode(vC4, distanceForC4ToBeInReach, nullptr);
 		if (iC4Node < 0) {
@@ -1884,12 +1858,10 @@ bool cBot::Defuse() {
 				forgetPath();
 				forgetGoal();
 				setGoalNode(iC4Node);
-			}
-			else {
+			} else {
 				rprint_normal("Defuse()", "I already have a goal towards the C4!");
 			}
-		}
-		else {
+		} else {
 			rprint_normal("Defuse()", "C4 is somewhere without a close node.");
 		}
 		setMoveSpeed(f_max_speed);
@@ -1910,7 +1882,7 @@ void cBot::Act() {
 		if (chChatSentence[0] != '\0') {
 			UTIL_SayTextBot(chChatSentence, this);
 			std::memset(chChatSentence, 0, sizeof(chChatSentence));
-		}
+			}
 	}
 
 	// camp
@@ -2377,8 +2349,7 @@ void cBot::setGoalNode(const int nodeIndex, const int iGoalIndex) {
 			goalPtr->name,
 			goalPtr->iChecked
 		);
-	}
-	else {
+	} else {
 		snprintf(msg, sizeof(msg), "Setting iGoalNode to [%d] and goalIndex [%d] - could not retrieve goal data.", nodeIndex, goalIndex);
 	}
 	rprint("setGoalNode()", msg);
@@ -2712,8 +2683,7 @@ void cBot::performBuyActions(const int weaponIdToBuy) {
 				break;
 				//whats about nightvision? BuyWeapon (pBot, "8", "7")
 			}
-		}
-		else                 // terror
+		} else                 // terror
 		{
 			switch (weaponIdToBuy) {
 			case CS_WEAPON_SCOUT:
@@ -2780,8 +2750,7 @@ void cBot::Memory() {
 								vHear = pPlayer->v.origin;
 								pHearPlayer = pPlayer;
 							}
-						}
-						else {
+						} else {
 							vHear = pPlayer->v.origin;
 							pHearPlayer = pPlayer;
 						}
@@ -2809,8 +2778,7 @@ void cBot::Memory() {
 								vHear = pPlayer->v.origin;
 								pHearPlayer = pPlayer;
 							}
-						}
-						else {
+						} else {
 							vHear = pPlayer->v.origin;
 							pHearPlayer = pPlayer;
 						}
@@ -2834,8 +2802,7 @@ void cBot::Memory() {
 								vHear = pPlayer->v.origin;
 								pHearPlayer = pPlayer;
 							}
-						}
-						else {
+						} else {
 							vHear = pPlayer->v.origin;
 							pHearPlayer = pPlayer;
 						}
@@ -2891,8 +2858,7 @@ void cBot::Memory() {
 					f_camp_time = gpGlobals->time + fTime;
 				}
 
-			}
-			else {
+			} else {
 				fMemoryTime = gpGlobals->time + 5.0f;
 			}
 
@@ -2918,8 +2884,7 @@ void cBot::Memory() {
 			if (f_update_weapon_time + 2 < gpGlobals->time) {
 				PickBestWeapon();
 			}
-		}
-		else {
+		} else {
 			vEar = Vector(9999, 9999, 9999);
 			//
 			//            // check for any 'beeps' of the bomb!
@@ -2947,8 +2912,7 @@ void cBot::Memory() {
 			//            }
 		}
 
-	}
-	else {
+	} else {
 		vEar = Vector(9999, 9999, 9999);
 	}
 }
@@ -3022,20 +2986,17 @@ void cBot::ThinkAboutGoals() {
 		// A dropped C4 is not a 'goal' (ie. it won't let you win the game
 		// when you pick up the bomb. Therefor the 'pickup the dropped bomb
 		// code is in cNodeMachine::path_walk().
-	}
-	else if (isCounterTerrorist()) {
+	} else if (isCounterTerrorist()) {
 		// COUNTER-TERRORISTS
 		if (vip) {
 			// VIP
-		}
-		else {
+		} else {
 			if (Game.bBombPlanted) {
 				if (isCounterTerrorist()) {
 					// defuse (or set timers for it)
 					Defuse();
 				}
-			}
-			else {
+			} else {
 				if (Game.bHostageRescueMap) {
 					TryToGetHostageTargetToFollowMe(this);
 					checkIfHostagesAreRescued();
@@ -3199,13 +3160,11 @@ void cBot::Think() {
 				const int g = RANDOM_LONG(30, 155);
 				const int b = RANDOM_LONG(30, 155);
 				char msg[128];
-				if (Game.iDeathsBroadcasting == BROADCAST_DEATHS_FULL)
-					snprintf(msg, sizeof(msg),
-						"You have killed a RealBot!\n\nName:%s\nSkill:%d\n",
-						name, bot_skill);
-				else
-					snprintf(msg, sizeof(msg), "You have killed a RealBot named %s!",
-						name);
+				if (Game.iDeathsBroadcasting == BROADCAST_DEATHS_FULL) {
+					snprintf(msg, sizeof(msg), "A RealBot has killed you!\n\nName:%s\nSkill:%d\n", name, bot_skill);
+				} else {
+					snprintf(msg, sizeof(msg), "A RealBot named %s has killed you!", name);
+				}
 
 				HUD_DrawString(r, g, b, msg, killer_edict);
 			}
@@ -3250,8 +3209,7 @@ void cBot::Think() {
 							PrepareChat(chSentence);
 						}
 					}
-			}
-			else {
+			} else {
 				// we missed the chatrate chance
 				if (fChatTime < gpGlobals->time)    // time
 					if (chChatSentence[0] == '\0')   // we did not want to say anything
@@ -3297,8 +3255,7 @@ void cBot::Think() {
 		// prevent division by zero
 		if (movedTwoTimes > 0.0f) {
 			distanceMoved = movedTwoTimes / 2.0f;
-		}
-		else {
+		} else {
 			distanceMoved = 0.0f;
 		}
 
@@ -3393,8 +3350,7 @@ void cBot::Think() {
 					break;
 				}
 			}
-		}
-		else {
+		} else {
 			while ((pent = UTIL_FindEntityByClassname(pent, "info_player_deathmatch")) != nullptr) {
 				if (func_distance(pent->v.origin, pEdict->v.origin) < 200 &&
 					func_distance(pent->v.origin, pEdict->v.origin) > 50) {
@@ -3490,8 +3446,7 @@ void cBot::Think() {
 
 		// Think about objectives
 		ThinkAboutGoals();
-	}
-	else {
+	} else {
 		// **---**---**---**---**---**---**
 		// MAIN STATE: We have an enemy!
 		// **---**---**---**---**---**---**
