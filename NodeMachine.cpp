@@ -384,8 +384,8 @@ void cNodeMachine::VectorToMeredian(const Vector& vOrigin, int *iX, int *iY)
     float iCoordY = vOrigin.y + 8192.0f;  // map width (converts from - to +)
 
     // Meredian:
-    iCoordX = iCoordX / SIZE_MEREDIAN;
-    iCoordY = iCoordY / SIZE_MEREDIAN;
+    iCoordX = iCoordX / static_cast<float>(SIZE_MEREDIAN);
+    iCoordY = iCoordY / static_cast<float>(SIZE_MEREDIAN);
 
     *iX = static_cast<int>(iCoordX);
     *iY = static_cast<int>(iCoordY);
@@ -410,7 +410,7 @@ void cNodeMachine::AddToMeredian(const int iX, const int iY, const int iNode)
 bool cNodeMachine::node_float(const Vector& vOrigin, edict_t *pEdict)
 {
     TraceResult tr;
-    const Vector tr_end = vOrigin - Vector(0, 0, ORIGIN_HEIGHT * 1.2f);
+    const Vector tr_end = vOrigin - Vector(0, 0, static_cast<float>(ORIGIN_HEIGHT) * 1.2f);
 
     //Using TraceHull to detect de_aztec bridge and other entities. (skill self)
     //UTIL_TraceHull(vOrigin, tr_end, ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
@@ -443,7 +443,7 @@ bool cNodeMachine::node_float(const Vector& vOrigin, edict_t *pEdict)
 bool cNodeMachine::node_on_crate(const Vector& vOrigin, edict_t *pEdict)
 {
     TraceResult tr;
-    const Vector tr_end = vOrigin - Vector(0, 0, ORIGIN_HEIGHT * 1.2f);
+    const Vector tr_end = vOrigin - Vector(0, 0, static_cast<float>(ORIGIN_HEIGHT) * 1.2f);
 
     //Using TraceHull to detect de_aztec bridge and other entities. (skill self)
     if (pEdict)
@@ -846,12 +846,12 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
 #endif
 
         if (Height > PreviousHeight) {    // Going upwards
-            if (Height - PreviousHeight > MAX_JUMPHEIGHT) {
+            if (Height - PreviousHeight > static_cast<float>(MAX_JUMPHEIGHT)) {
                 //printf("   too high for upward jump\n") ;
                 return 0;
             }
         } else {                  // Going downwards
-            if (PreviousHeight - Height > MAX_FALLHEIGHT)
+            if (PreviousHeight - Height > static_cast<float>(MAX_FALLHEIGHT))
                 if (UTIL_PointContents(Floor + Vector(0, 0, 5))
                     != CONTENTS_WATER)
                     //{printf("   too high for a downward fall not in water\n") ;
@@ -872,12 +872,12 @@ int cNodeMachine::Reachable(const int iStart, const int iEnd) const
 #endif
 
     if (Height > PreviousHeight) {       // Going upwards
-        if (Height - PreviousHeight > MAX_JUMPHEIGHT) {
+        if (Height - PreviousHeight > static_cast<float>(MAX_JUMPHEIGHT)) {
             //printf("   too high for upward jump\n") ;
             return 0;
         }
     } else {                     // Going downwards
-        if (PreviousHeight - Height > MAX_FALLHEIGHT)
+        if (PreviousHeight - Height > static_cast<float>(MAX_FALLHEIGHT))
             if (UTIL_PointContents(End) != CONTENTS_WATER) {
                 //printf("   too high for a downward fall not in water\n") ;
                 return 0;       // Falling from too high not in water
@@ -1120,14 +1120,14 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
         const vec_t fallDistance = Nodes[currentIndex].origin.z - Nodes[nodeIndex].origin.z;
 
         if (indexNodeFloats
-            && fallDistance > MAX_FALLHEIGHT
+            && fallDistance > static_cast<float>(MAX_FALLHEIGHT)
             && (!bNeighbourWater && !bIsInWater)) {
             // skip nodes that are not in water and too low (ie will cause fall damage)
             continue;
         }
 
         // skip nodes which are to high (fall damage)
-        if (fallDistance > MAX_FALLHEIGHT) {
+        if (fallDistance > static_cast<float>(MAX_FALLHEIGHT)) {
             continue;
         }
 
@@ -1138,7 +1138,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
             if (indexNodeFloats == false &&   // we stand on something
                 nodeIsHigherThanOrigin &&       // we MUST jump (not fall)
                 bNeighbourWater == false &&
-                std::fabs(slopeDistance) > MAX_JUMPHEIGHT)      // and cannot jump to it
+                std::fabs(slopeDistance) > static_cast<float>(MAX_JUMPHEIGHT)) // and cannot jump to it
             {
                 //                        SERVER_PRINT("Cannot jump to it");
                 continue;           // next neighbour
@@ -1148,7 +1148,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
             if (indexNodeFloats == false &&   // we stand on something
                 nodeIsHigherThanOrigin &&       // we MUST jump (not fall)
                 bNeighbourWater == false &&
-                std::fabs(slopeDistance) > MAX_FALLHEIGHT)      // and cannot jump to it
+                std::fabs(slopeDistance) > static_cast<float>(MAX_FALLHEIGHT)) // and cannot jump to it
             {
                 //                        SERVER_PRINT("Insanity jump not possible either!\n");
                 continue;           // next neighbour
@@ -1163,7 +1163,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
             // falling
             // 14/06/05 - this code does not cause bad connections! - Stefan
             // 20/06/05 - oops, it does... because it blocks when we are NOT falling...
-            if (slopeDistance > MAX_FALLHEIGHT) {
+            if (slopeDistance > static_cast<float>(MAX_FALLHEIGHT)) {
                 hull_type = human_hull; // when we fall, be sure we can freely fall.
             }
 
@@ -1210,7 +1210,7 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
             if (bNeighbourFloats == false &&       // we stand on something
                 Nodes[currentIndex].origin.z > Nodes[nodeIndex].origin.z &&       // we MUST jump (not fall)
                 bIsInWater == false &&
-                std::fabs(fallDistance) > MAX_JUMPHEIGHT)   // and cannot jump to it
+                std::fabs(fallDistance) > static_cast<float>(MAX_JUMPHEIGHT))   // and cannot jump to it
                 bCanConnect = false;        // cannot connect
 
             // All water stuff can connect to each other
@@ -1285,7 +1285,7 @@ void cNodeMachine::addNodesForPlayers() {
             const int iPlayerIndex = index - 1;
 
             // within a certain distance no node found? add one
-            if (func_distance(pPlayer->v.origin, Players[iPlayerIndex].vPrevPos) > NODE_ZONE) {
+            if (func_distance(pPlayer->v.origin, Players[iPlayerIndex].vPrevPos) > static_cast<float>(NODE_ZONE)) {
                 Players[iPlayerIndex].vPrevPos = pPlayer->v.origin;
                 add2(pPlayer->v.origin, 0, pPlayer);
             }
@@ -1837,7 +1837,7 @@ void cNodeMachine::contact(const int iNode, const int iTeam) {
     for (int i = 0; i < MAX_NODES; i++) {
         if (Nodes[i].origin != Vector(9999, 9999, 9999) && i != iNode) {
 	        const float fDist = func_distance(Nodes[i].origin, Nodes[iNode].origin);
-            if (fDist < NODE_CONTACT_DIST) {
+            if (fDist < static_cast<float>(NODE_CONTACT_DIST)) {
                 //Using TraceHull to detect de_aztec bridge and other entities.
                 TraceResult tr;
 
@@ -1847,7 +1847,7 @@ void cNodeMachine::contact(const int iNode, const int iTeam) {
 
                 // within distance and 'reachable'
                 if (tr.flFraction >= 1.0f) {
-	                const double costIncrease = fDist / NODE_CONTACT_DIST * NODE_CONTACT_STEP;
+	                const double costIncrease = fDist / static_cast<float>(NODE_CONTACT_DIST) * NODE_CONTACT_STEP;
                     InfoNodes[i].fContact[iTeam] += static_cast<float>(costIncrease);
                 }
             }
@@ -1895,7 +1895,7 @@ void cNodeMachine::danger(const int iNode, const int iTeam) {
 }
 
 // Adds a new goal to the array
-void cNodeMachine::addGoal(edict_t *pEdict, const int goalType, const Vector& vVec) {
+void cNodeMachine::addGoal(edict_t* pEdict, const int goalType, const Vector& vVec) {
     //
     // 14/06/04
     // Be carefull with adding SERVER_PRINT messages here
@@ -1913,14 +1913,14 @@ void cNodeMachine::addGoal(edict_t *pEdict, const int goalType, const Vector& vV
         return;
     }
 
-    float distance = NODE_ZONE * 2;
+    float distance = static_cast<float>(NODE_ZONE) * 2.0f;
 
     // some goals require very close nodes
     if (goalType == GOAL_HOSTAGE ||
         goalType == GOAL_VIPSAFETY ||
         goalType == GOAL_RESCUEZONE ||
         goalType == GOAL_BOMBSPOT) {
-        distance = NODE_ZONE * 0.8f;
+        distance = static_cast<float>(NODE_ZONE) * 0.8f;
     }
 
     int nNode = getClosestNode(vVec, distance, pEdict);
@@ -1934,7 +1934,7 @@ void cNodeMachine::addGoal(edict_t *pEdict, const int goalType, const Vector& vV
         }
     }
 
-    tGoal *goal = getGoal(index);
+    tGoal* goal = getGoal(index);
     if (goal == nullptr) {
         rblog("No valid goal index found - bailing\n");
         return;
@@ -3361,7 +3361,7 @@ void cNodeMachine::path_think(cBot *pBot, const float distanceMoved) {
     if (pBot->shouldBeWandering()) {
         int currentNode = -1;
         for (int attempts = 1; attempts < 5; attempts++) {
-	        const float distance = NODE_ZONE + static_cast<float>(attempts * NODE_ZONE);
+	        const float distance = static_cast<float>(NODE_ZONE) + static_cast<float>(attempts * NODE_ZONE);
             currentNode = pBot->determineCurrentNode(distance); // this also sets current node in bot state
             if (currentNode > -1) break;
         }
@@ -3555,28 +3555,33 @@ void cNodeMachine::path_think(cBot *pBot, const float distanceMoved) {
             }
 
             if (goalType == GOAL_HOSTAGE) {
-                // counter-terrorist should
                 float goalscore = 0.0f;
+
+                // Counter-Terrorist hostage rescue logic
                 if (pBot->isCounterTerrorist()) {
                     if (pBot->isEscortingHostages()) {
                         pBot->rprint("I am escorting hostages - should ignore existing hostages");
-                        // already escorting hostages, low interest for other hostages
+                        // Already escorting hostages, low interest for other hostages
                         goalscore = 0.5f;
-                    } else {
-                        // always go to the most furthest hostage spot, and add some randomness here, else
-                        // all bots go to there.
-                        const float mul = MAX_GOAL_DISTANCE / fDistanceToGoal;
-                        goalscore = 1 + mul;
                     }
-                } else {
-                    // Terrorist pick randomly this location
+                    else {
+                    	// Prioritize closer hostages for a quicker rescue.
+                        // The score is inversely proportional to the distance.
+                        // Adding a small random factor to prevent all bots picking the same hostage.
+                        goalscore = (MAX_GOAL_DISTANCE / std::max(fDistanceToGoal, 1.0f)) + RANDOM_FLOAT(0.1f, 0.2f);
+                    }
+                }
+                // Terrorist logic for hostage locations
+                else {
+                    // Terrorists have a low chance to guard a hostage location.
                     if (RANDOM_LONG(0, 100) < 25) {
                         goalscore = RANDOM_FLOAT(0.1f, 0.6f);
                     }
                 }
 
                 score = (score + goalscore) / 2.0f;
-            } else if (goalType == GOAL_RESCUEZONE) {
+            }
+            else if (goalType == GOAL_RESCUEZONE) {
                 if (pBot->isCounterTerrorist()) {
                     if (pBot->isEscortingHostages()) {
                         pBot->rprint("I am escorting hostages - prioritizing for rescue zone");
@@ -4461,10 +4466,10 @@ void cNodeMachine::FindMinMax() const
     }
 
     // Avoid having lines/points just on the bitmap border, add some more spaces
-    maxx += NODE_ZONE;
-    minx -= NODE_ZONE;
-    maxy += NODE_ZONE;
-    miny -= NODE_ZONE;
+    maxx += static_cast<float>(NODE_ZONE);
+    minx -= static_cast<float>(NODE_ZONE);
+    maxy += static_cast<float>(NODE_ZONE);
+    miny -= static_cast<float>(NODE_ZONE);
 
     // first compute the X and Y divider scale, and take the greatest of both
 	const float scalex = (1 + maxx - minx) / static_cast<int>(DEBUG_BMP_WIDTH);

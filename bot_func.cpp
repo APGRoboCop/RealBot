@@ -848,6 +848,41 @@ void FUNC_FindBreakable(cBot* pBot)
     }
 }
 
+void FUNC_AttackBreakable(cBot* pBot)
+{
+    if (pBot == nullptr || pBot->pBreakableEdict == nullptr) {
+        return;
+    }
+
+    edict_t* pBreakable = pBot->pBreakableEdict;
+
+    // If the breakable is no longer valid, forget it
+    if (pBreakable->v.health <= 0 || (pBreakable->v.flags & FL_DORMANT)) {
+        pBot->pBreakableEdict = nullptr;
+        return;
+    }
+
+    const Vector vBreakableOrigin = VecBModelOrigin(pBreakable);
+    pBot->setHeadAiming(vBreakableOrigin);
+
+    const float distance = (pBot->pEdict->v.origin - vBreakableOrigin).Length();
+
+    // Use knife if close enough, otherwise use the current weapon
+    if (distance < 64.0f) {
+        if (!pBot->isHoldingWeapon(CS_WEAPON_KNIFE)) {
+            pBot->pickWeapon(CS_WEAPON_KNIFE);
+        }
+        pBot->FireWeapon();
+    }
+    else {
+        // If holding a knife but the breakable is not close, switch to a better weapon
+        if (pBot->isHoldingWeapon(CS_WEAPON_KNIFE)) {
+            pBot->PickBestWeapon();
+        }
+        pBot->FireWeapon();
+    }
+}
+
 void FUNC_CheckForBombPlanted(edict_t* pEntity) //Experimental [APG]RoboCop[CL]
 {
     // Check if the bot has a bomb planted.

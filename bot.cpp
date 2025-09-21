@@ -708,7 +708,7 @@ void cBot::AimAtEnemy() {
 	fDy = fpYOffset;
 	fDz = fpZOffset;
 
-	// increase offset with personality x,y,z offsets randomly
+	// increase offset with personality x,y,z randomly
 	vTarget = vTarget + Vector(
 		RANDOM_FLOAT(-fDx, fDx),
 		RANDOM_FLOAT(-fDy, fDy),
@@ -1022,6 +1022,9 @@ void cBot::FireWeapon() {
 	if (hasEnemy()) {
 		fDistance = func_distance(pEdict->v.origin, pEnemyEdict->v.origin);
 	}
+	else if (pBreakableEdict != nullptr) {
+		fDistance = func_distance(pEdict->v.origin, VecBModelOrigin(pBreakableEdict));
+	}
 
 	// Depending on weapon type
 	if (CarryWeaponType() == SECONDARY) {
@@ -1131,16 +1134,7 @@ void cBot::FireWeapon() {
  ******************************************************************************/
 void cBot::Combat() {
 	if (pBreakableEdict != nullptr) {
-		// If the breakable is no longer valid, forget it
-		if (pBreakableEdict->v.health <= 0 || (pBreakableEdict->v.flags & FL_DORMANT)) {
-			pBreakableEdict = nullptr;
-			return;
-		}
-
-		// Aim and fire at the breakable
-		const Vector vBreakableOrigin = VecBModelOrigin(pBreakableEdict);
-		setHeadAiming(vBreakableOrigin);
-		FireWeapon();
+		FUNC_AttackBreakable(this);
 		return;
 	}
 
@@ -2119,23 +2113,23 @@ void cBot::CheckAround() {
 	const Vector v_forwardleft = v_left + gpGlobals->v_forward * -distance;
 
 	// TRACELINE: forward
-	UTIL_TraceHull(v_source, v_forward, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
+	UTIL_TraceHull(v_source, v_forward, dont_ignore_monsters, point_hull, pEdict, &tr);
 	const bool bHitForward = tr.flFraction < 1.0f;
 
 	// TRACELINE: Left
-	UTIL_TraceHull(v_source, v_left, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
+	UTIL_TraceHull(v_source, v_left, dont_ignore_monsters, point_hull, pEdict, &tr);
 	const bool bHitLeft = tr.flFraction < 1.0f;
 
 	// TRACELINE: Right
-	UTIL_TraceHull(v_source, v_right, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
+	UTIL_TraceHull(v_source, v_right, dont_ignore_monsters, point_hull, pEdict, &tr);
 	const bool bHitRight = tr.flFraction < 1.0f;
 
 	// TRACELINE: Forward left
-	UTIL_TraceHull(v_source, v_forwardleft, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
+	UTIL_TraceHull(v_source, v_forwardleft, dont_ignore_monsters, point_hull, pEdict, &tr);
 	const bool bHitForwardLeft = tr.flFraction < 1.0f;
 
 	// TRACELINE: Forward right
-	UTIL_TraceHull(v_source, v_forwardright, dont_ignore_monsters, point_hull, pEdict->v.pContainingEntity, &tr);
+	UTIL_TraceHull(v_source, v_forwardright, dont_ignore_monsters, point_hull, pEdict, &tr);
 	const bool bHitForwardRight = tr.flFraction < 1.0f;
 
 	char msg[255];
@@ -2911,7 +2905,6 @@ void cBot::Memory() {
 			//                }
 			//            }
 		}
-
 	} else {
 		vEar = Vector(9999, 9999, 9999);
 	}
@@ -3162,7 +3155,8 @@ void cBot::Think() {
 				char msg[128];
 				if (Game.iDeathsBroadcasting == BROADCAST_DEATHS_FULL) {
 					snprintf(msg, sizeof(msg), "A RealBot has killed you!\n\nName:%s\nSkill:%d\n", name, bot_skill);
-				} else {
+				}
+				else {
 					snprintf(msg, sizeof(msg), "A RealBot named %s has killed you!", name);
 				}
 
@@ -3209,7 +3203,8 @@ void cBot::Think() {
 							PrepareChat(chSentence);
 						}
 					}
-			} else {
+			}
+			else {
 				// we missed the chatrate chance
 				if (fChatTime < gpGlobals->time)    // time
 					if (chChatSentence[0] == '\0')   // we did not want to say anything
@@ -3255,7 +3250,8 @@ void cBot::Think() {
 		// prevent division by zero
 		if (movedTwoTimes > 0.0f) {
 			distanceMoved = movedTwoTimes / 2.0f;
-		} else {
+		}
+		else {
 			distanceMoved = 0.0f;
 		}
 
@@ -3350,7 +3346,8 @@ void cBot::Think() {
 					break;
 				}
 			}
-		} else {
+		}
+		else {
 			while ((pent = UTIL_FindEntityByClassname(pent, "info_player_deathmatch")) != nullptr) {
 				if (func_distance(pent->v.origin, pEdict->v.origin) < 200 &&
 					func_distance(pent->v.origin, pEdict->v.origin) > 50) {
@@ -3378,7 +3375,7 @@ void cBot::Think() {
 			if (pBreakableEdict != nullptr)
 			{
 				// Found a breakable, attack it
-				Combat();
+				FUNC_AttackBreakable(this);
 				// Reset stuck timer
 				fNotStuckTime = gpGlobals->time + 2.0f;
 				return;
@@ -3391,18 +3388,23 @@ void cBot::Think() {
 		}
 	}
 
+	// If the bot has a breakable target, attack it immediately.
+	if (pBreakableEdict != nullptr) {
+		FUNC_AttackBreakable(this);
+		return;
+	}
+
 	// **---**---**---**---**---**---**
 	// MAIN STATE: We have no enemy...
 	// **---**---**---**---**---**---**
-	if (!hasEnemy() && pBreakableEdict == nullptr) {
+	if (!hasEnemy()) {
 
 		if (!Game.bDoNotShoot) {
 			FUNC_FindBreakable(this);
-			if (pBreakableEdict != nullptr) {
-				Combat(); // Attack the breakable
-				return;
+			// If a breakable is found, the next think cycle will handle it
+			if (pBreakableEdict == nullptr) {
+				InteractWithPlayers();
 			}
-			InteractWithPlayers();
 		}
 
 		bool bMayFromGame = true;
@@ -3446,7 +3448,8 @@ void cBot::Think() {
 
 		// Think about objectives
 		ThinkAboutGoals();
-	} else {
+	}
+	else {
 		// **---**---**---**---**---**---**
 		// MAIN STATE: We have an enemy!
 		// **---**---**---**---**---**---**
@@ -3765,7 +3768,7 @@ bool BotRadioAction() {
 							NodeMachine.getClosestNode(plr->v.origin, NODE_ZONE, plr);
 
 						if (iBackupNode > -1) {
-							BotPointer->rprint_trace("BotRadioAction", "Found node nearby player who requested backup/reported taking fire.");
+						 BotPointer->rprint_trace("BotRadioAction", "Found node nearby player who requested backup/reported taking fire.");
 							BotPointer->setGoalNode(iBackupNode);
 							BotPointer->forgetPath();
 							BotPointer->f_camp_time = gpGlobals->time - 1;
@@ -4361,7 +4364,7 @@ void cBot::doJump(const Vector& vector) {
 void cBot::doJump() {
 	rprint_trace("doJump", "no vector");
 	UTIL_BotPressKey(this, IN_JUMP);
-	this->f_jump_time = gpGlobals->time + 0.5f;
+	this->f_jump_time = gpGlobals->time + 0.75f;
 
 	// duck like this, because doDuck increases node time *again*, so no
 	UTIL_BotPressKey(this, IN_DUCK); // DUCK jump by default

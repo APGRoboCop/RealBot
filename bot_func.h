@@ -87,7 +87,9 @@ void FUNC_HearingTodo(cBot* pBot);
 void FUNC_ClearEnemyPointer(edict_t* pPtr); //pPtr muddled with c_pointer? [APG]RoboCop[CL]
 
 bool FUNC_IsOnLadder(const edict_t* pEntity);
+bool IsShootableBreakable(edict_t* pent);
 void FUNC_FindBreakable(cBot* pBot);
+void FUNC_AttackBreakable(cBot* pBot);
 void FUNC_CheckForBombPlanted(edict_t* pEntity);
 
 int FUNC_GiveHostage(cBot* pBot);                      // gives any hostage we still have to go for
