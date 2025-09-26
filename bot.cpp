@@ -3018,7 +3018,7 @@ edict_t* cBot::findHostageToRescue() {
 		if (!isHostageRescueable(this, pent)) continue;
 		if (!canSeeEntity(pent)) continue;
 		// skip too far hostages, leave it up to the goal picking to get closer
-		if (getDistanceTo(pent->v.origin) > NODE_ZONE * 2.5f) continue;
+		if (getDistanceTo(pent->v.origin) > static_cast<float>(NODE_ZONE) * 2.5f) continue;
 
 		char msg[255];
 		snprintf(msg, sizeof(msg), "Found hostage to rescue at %f,%f,%f", pent->v.origin.x, pent->v.origin.y, pent->v.origin.z);

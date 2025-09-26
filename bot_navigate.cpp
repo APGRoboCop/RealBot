@@ -113,7 +113,7 @@ void setupMovementVectors(const edict_t* pEdict, Vector& forward, Vector& right)
     right = gpGlobals->v_right;
 }
 
-bool BotCanJumpUp(cBot *pBot) {
+bool BotCanJumpUp(cBot* pBot) {
     // What I do here is trace 3 lines straight out, one unit higher than
     // the highest normal jumping distance.  I trace once at the center of
     // the body, once at the right side, and once at the left side.  If all
@@ -130,7 +130,7 @@ bool BotCanJumpUp(cBot *pBot) {
     setupMovementVectors(pEdict, v_forward, v_right);
 
     // Horizontal check at jump height
-    Vector v_source_horizontal = pEdict->v.origin + Vector(0, 0, STAND_VIEW_HEIGHT_OFFSET + MAX_JUMPHEIGHT);
+    Vector v_source_horizontal = pEdict->v.origin + Vector(0, 0, STAND_VIEW_HEIGHT_OFFSET + static_cast<float>(MAX_JUMPHEIGHT));
     if (!traceArea(pEdict, v_source_horizontal, v_forward * FORWARD_CHECK_DISTANCE, v_right, true)) {
         return false;
     }

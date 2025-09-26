@@ -2222,7 +2222,7 @@ void cNodeMachine::scale_danger() {
 }
 
 // Pathfinder
-bool cNodeMachine::createPath(const int nodeStartIndex, const int nodeTargetIndex, const int botIndex, cBot *pBot, int iFlags) {
+bool cNodeMachine::createPath(const int nodeStartIndex, const int nodeTargetIndex, const int botIndex, cBot* pBot, int iFlags) {
     // Will create a path from nodeStartIndex to nodeTargetIndex, and store it into index number iPathId
 
     if (pBot) {
@@ -2231,8 +2231,10 @@ bool cNodeMachine::createPath(const int nodeStartIndex, const int nodeTargetInde
         pBot->rprint("cNodeMachine::createPath", msg);
     }
 
-    if (nodeStartIndex < 0 || nodeTargetIndex < 0 || botIndex < 0)
+    if (nodeStartIndex < 0 || nodeTargetIndex < 0 || botIndex < 0 ||
+        nodeStartIndex >= MAX_NODES || nodeTargetIndex >= MAX_NODES) {
         return false; // do not create a path when invalid params given
+    }
 
     if (nodeStartIndex > iMaxUsedNodes || nodeTargetIndex > iMaxUsedNodes)
         return false; // do not create a path when invalid params given
@@ -2241,86 +2243,70 @@ bool cNodeMachine::createPath(const int nodeStartIndex, const int nodeTargetInde
         UTIL_GetTeam(pBot->pEdict); // Stefan: yes we use 0-1 based, not 1-2 based
     }
 
-    const Vector& INVALID_VECTOR = Vector(9999, 9999, 9999);
-
-    // start or target vector may not be invalid
     if (Nodes[nodeStartIndex].origin == INVALID_VECTOR ||
         Nodes[nodeTargetIndex].origin == INVALID_VECTOR) {
         rblog("Invalid start and target index\n");
         return false;
     }
 
-    int nodeIndex;
-
     path_clear(botIndex);
 
-    // INIT: Start
-    makeAllWaypointsAvailable();
+    std::priority_queue<tNodestar> openList;
+    std::vector<tNodestar> nodeData(MAX_NODES);
 
-    // Our start waypoint is open
-    constexpr float gCost = 0.0f; // distance from starting node
-    const float hCost = func_distance(Nodes[nodeStartIndex].origin,
-        Nodes[nodeTargetIndex].origin); // distance from end node to node
-    const float cost = gCost + hCost;
-    closeNode(nodeStartIndex, nodeStartIndex, cost);
-    openNeighbourNodes(nodeStartIndex, nodeStartIndex, nodeTargetIndex, -1);
+    // Initialize node data
+    for (int i = 0; i < MAX_NODES; ++i) {
+        nodeData[i].state = AVAILABLE;
+        nodeData[i].parent = -1;
+        nodeData[i].cost = std::numeric_limits<float>::max();
+    }
 
-    bool pathFound = false;           // is it still valid to loop through the lists for pathfinding?
+    // Setup start node
+    nodeData[nodeStartIndex].cost = func_distance(Nodes[nodeStartIndex].origin, Nodes[nodeTargetIndex].origin);
+    nodeData[nodeStartIndex].state = OPEN;
+    openList.push({ OPEN, nodeStartIndex, nodeData[nodeStartIndex].cost, 0.0f });
 
-    int nodesEvaluated = 0;
-    // INIT: End
-    // PATHFINDER: Start
-    while (!pathFound) {
-        float lowestScore = 99999999.0f;
-        int nodeToClose = -1;
+    bool pathFound = false;
 
-        // go through all OPEN waypoints
-        for (nodeIndex = 0; nodeIndex < MAX_NODES; nodeIndex++) {
-            nodesEvaluated++; // increment nodesEvaluated each time a node is evaluated [APG]RoboCop[CL]
-            tNodestar& nodeStar = astar_list[nodeIndex];
+    while (!openList.empty()) {
+        const int currentNodeIndex = openList.top().parent;
+        openList.pop();
 
-            if (nodeStar.state == CLOSED || nodeStar.state == AVAILABLE) continue;
-
-            // OPEN waypoint
-            tNode& node = Nodes[nodeIndex];
-            if (node.origin == INVALID_VECTOR) {
-                rblog("Evaluating an INVALID vector!?!\n");
-                nodeStar.state = CLOSED;
-                continue; // it is an invalid vector
-            }
-
-            // nodeIndex is target, so target found
-            if (nodeIndex == nodeTargetIndex) {
-                pathFound = true;
-                rblog("Target found\n");
-                break; // Get out of here
-            }
-
-            // open is not target, so go over its neighbours (which have been opened) and find the lowest cost
-            if (nodeStar.cost < lowestScore) {
-                nodeToClose = nodeIndex;
-                lowestScore = nodeStar.cost;
-            }
+        if (nodeData[currentNodeIndex].state == CLOSED) {
+            continue;
         }
 
-        // a node that should be closed is an evaluated node and the most preferred one.
-        // open up all neighbouring nodes, and close this one
-        if (nodeToClose > -1) {
-            astar_list[nodeToClose].state = CLOSED;
-            int botTeam = -1;
-            if (pBot) {
-                botTeam = pBot->iTeam;
-            }
-
-            openNeighbourNodes(nodeStartIndex, nodeToClose, nodeTargetIndex, botTeam);
-        }
-        else {
+        if (currentNodeIndex == nodeTargetIndex) {
+            pathFound = true;
             break;
         }
-    }
-    // PATHFINDER: End
 
-    // RESULT: Success
+        nodeData[currentNodeIndex].state = CLOSED;
+
+        const tNode& currentNode = Nodes[currentNodeIndex];
+        for (const int neighborIndex : currentNode.iNeighbour) {
+            if (neighborIndex < 0 || Nodes[neighborIndex].origin == INVALID_VECTOR || nodeData[neighborIndex].state == CLOSED) {
+                continue;
+            }
+
+            const float gCost = nodeData[currentNodeIndex].cost + func_distance(currentNode.origin, Nodes[neighborIndex].origin);
+            const float hCost = func_distance(Nodes[neighborIndex].origin, Nodes[nodeTargetIndex].origin);
+            float totalCost = gCost + hCost;
+
+            if (pBot) {
+                const float dangerCost = InfoNodes[neighborIndex].fDanger[pBot->iTeam] * totalCost;
+                totalCost += dangerCost;
+            }
+
+            if (totalCost < nodeData[neighborIndex].cost) {
+                nodeData[neighborIndex].parent = currentNodeIndex;
+                nodeData[neighborIndex].cost = totalCost;
+                nodeData[neighborIndex].state = OPEN;
+                openList.push({ OPEN, neighborIndex, totalCost, 0.0f });
+            }
+        }
+    }
+
     if (!pathFound) {
         if (pBot) {
             pBot->rprint("cNodeMachine::createPath", "Failed to create path");
@@ -2328,83 +2314,25 @@ bool cNodeMachine::createPath(const int nodeStartIndex, const int nodeTargetInde
         return false;
     }
 
-    for (nodeIndex = 0; nodeIndex < MAX_PATH_NODES; nodeIndex++) {
-        const tNodestar& nodeStar = astar_list[nodeIndex];
-        if (nodeStar.state == AVAILABLE) continue;
+    // Build path
+    std::vector<int> temp_path;
+    int wpta = nodeTargetIndex;
+    while (wpta != -1) {
+        temp_path.push_back(wpta);
+        wpta = nodeData[wpta].parent;
     }
 
-    // Build path (from goal to start, read out parent waypoint to backtrace)
-    int temp_path[MAX_PATH_NODES];
+    std::reverse(temp_path.begin(), temp_path.end());
 
-    // INIT: Start
-    for (nodeIndex = 0; nodeIndex < MAX_PATH_NODES; nodeIndex++)
-        temp_path[nodeIndex] = -1;
-
-    // The path has been built yet?
-    bool built = false;
-
-    // The variables needed to backtrace
-    // wpta = waypoint we use to backtrace (starting at goal)
-    // p = index for temp_path (the path will be GOAL-START, reversed later)
-    int wpta = nodeTargetIndex, p = 0;
-
-    // INIT: End
-
-    // START: When path is not built yet
-    while (!built) {
-        temp_path[p] = wpta;   // Copy the waypoint into temp_path[index]
-
-        // IF: At current (start) waypoint
-        if (wpta == nodeStartIndex) {
-            // Check if we did not already had this waypoint before
-            built = true;       // We finished building this path.
-        }
-        else {
-            // Whenever wpta is containing bad information...
-            if (wpta < 0 || wpta > MAX_NODES)
-                break;           // ...get out aswell
-        }
-
-        // waypoint we use to backtrace will be set to parent waypoint.
-        wpta = astar_list[wpta].parent;
-
-        // Increase index for temp_path
-        p++;
-
-        // Whenever we reach the limit, get out.
-        if (p >= MAX_PATH_NODES)
-            break;
-
-    }
-
-    // INIT: Start
-    int path_index = 0;           // done above, but done again to be sure
-    // INIT: End
-
-    // Now set the path up correctly
-    for (nodeIndex = MAX_NODES - 1; nodeIndex > -1; nodeIndex--) {
-        const int node = temp_path[nodeIndex];
-        if (node < 0)
-            continue;
-
-        iPath[botIndex][path_index] = node;
-
-        // print out full path so we know what the order is
-        if (pBot != nullptr) {
+    // Copy to bot's path array
+    for (size_t i = 0; i < temp_path.size() && i < MAX_PATH_NODES; ++i) {
+        iPath[botIndex][i] = temp_path[i];
+        if (pBot) {
             char pathMsg[255] = {};
-            snprintf(pathMsg, sizeof(pathMsg), "Bot [%d] path index [%d] has node [%d]", botIndex, path_index, node);
+            snprintf(pathMsg, sizeof(pathMsg), "Bot [%d] path index [%zu] has node [%d]", botIndex, i, temp_path[i]);
             pBot->rprint("cNodeMachine::createPath", pathMsg);
         }
-
-        path_index++;
     }
-
-    // Finally there is the goal
-    iPath[botIndex][path_index] = nodeTargetIndex;
-
-    // terminate path
-    path_index++;
-    iPath[botIndex][path_index] = -1;
 
     // And set bot in motion
     if (pBot != nullptr) {
@@ -2512,7 +2440,7 @@ bool cNodeMachine::isInvalidNode(const int index) //TODO: Experimental [APG]Robo
 	return !isValidNodeIndex(index);
 }
 
-//TODO: Implement this function - Experimental [APG]RoboCop[CL]
+//TODO: Experimental [APG]RoboCop[CL]
 void cNodeMachine::buildPath(const int nodeStartIndex, const int nodeTargetIndex, const int botIndex, cBot* pBot)
 {
     if (!isValidNodeIndex(nodeStartIndex) || !isValidNodeIndex(nodeTargetIndex)) {
@@ -2623,29 +2551,27 @@ int cNodeMachine::node_camp(const Vector& vOrigin, const int iTeam) const
 // Check if iFrom is visible from other nodes (and opposite)
 void cNodeMachine::vis_calculate(const int iFrom) {
     // Check around your area to see what is visible
-
-    for (int i = 0; i < MAX_NODES; i++)
-        if (i != iFrom && Nodes[i].origin != Vector(9999, 9999, 9999)) {
-	        constexpr float fClosest = 1024.0f;
-	        const float fDistance = func_distance(Nodes[i].origin, Nodes[iFrom].origin);
-            if (fDistance < fClosest) {
-                TraceResult tr;
-
-                // Visibility is not yet calculated, so determine now
-                if (GetVisibilityFromTo(iFrom, i) == VIS_UNKNOWN)   // BERKED
-                {
-                    UTIL_TraceHull(Nodes[iFrom].origin, Nodes[i].origin, ignore_monsters, point_hull, nullptr, &tr);
-
-                    if (tr.flFraction < 1.0f) {
-                        SetVisibilityFromTo(iFrom, i, false);
-                        SetVisibilityFromTo(i, iFrom, false);
-                    } else {
-                        SetVisibilityFromTo(iFrom, i, true);
-                        SetVisibilityFromTo(i, iFrom, true);
-                    }
-                }
-            }
+    constexpr float MAX_VISIBILITY_DISTANCE = 1024.0f;
+    for (int i = 0; i < iMaxUsedNodes; ++i) {
+        if (i == iFrom || Nodes[i].origin == INVALID_VECTOR) {
+            continue; // Skip the current node or invalid nodes
         }
+
+        const float fDistance = func_distance(Nodes[i].origin, Nodes[iFrom].origin);
+        if (fDistance >= MAX_VISIBILITY_DISTANCE) {
+            continue; // Skip if the node is too far
+        }
+
+        // Visibility is not yet calculated, so determine now
+        if (GetVisibilityFromTo(iFrom, i) == VIS_UNKNOWN) {
+            TraceResult tr;
+
+            UTIL_TraceHull(Nodes[iFrom].origin, Nodes[i].origin, ignore_monsters, point_hull, nullptr, &tr);
+            const bool isVisible = (tr.flFraction >= 1.0f);
+            SetVisibilityFromTo(iFrom, i, isVisible);
+            SetVisibilityFromTo(i, iFrom, isVisible);
+        }
+    }
 }
 
 // Find a node to look at when camping
@@ -4509,9 +4435,9 @@ void cNodeMachine::MarkMeredians() {
 
     // Mark some meredians
     for (x = 0; x < DEBUG_BMP_WIDTH; x++) {
-        Meredian =
-                (x * scale + minx +
-	                8192.0f) / SIZE_MEREDIAN;
+        Meredian = static_cast<int>(
+            (x * scale + minx +
+                8192.0f) / static_cast<float>(SIZE_MEREDIAN));
         if (Meredian & 0x01) {
             for (y = 0; y < DEBUG_BMP_HEIGHT; y++)
                 bmp_buffer[y * DEBUG_BMP_WIDTH + x]++;
@@ -4520,9 +4446,9 @@ void cNodeMachine::MarkMeredians() {
 
     // Mark some meredians
     for (y = 0; y < DEBUG_BMP_HEIGHT; y++) {
-        Meredian =
-                (y * scale + miny +
-	                8192.0f) / SIZE_MEREDIAN;
+        Meredian = static_cast<int>(
+            (y * scale + miny +
+                8192.0f) / static_cast<float>(SIZE_MEREDIAN));
         if (Meredian & 0x01) {
             for (x = 0; x < DEBUG_BMP_HEIGHT; x++)
                 bmp_buffer[y * DEBUG_BMP_WIDTH + x]++;

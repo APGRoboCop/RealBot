@@ -66,7 +66,7 @@ int ListIdWeapon(const int weapon_id) {
 }
 
 // The bot will be buying this weapon
-void BotPrepareConsoleCommandsToBuyWeapon(cBot *pBot, const char *arg1, const char *arg2) {
+void BotPrepareConsoleCommandsToBuyWeapon(cBot* pBot, const char* arg1, const char* arg2) {
     // To be sure the console will only change when we MAY change.
     // The values will only be changed when console_nr is 0
     if (Game.getRoundStartedTime() + 4 < gpGlobals->time)
@@ -74,15 +74,15 @@ void BotPrepareConsoleCommandsToBuyWeapon(cBot *pBot, const char *arg1, const ch
 
     if (pBot->console_nr == 0) {
         // set up first command and argument
-        strncpy(pBot->arg1, "buy", sizeof(pBot->arg1) - 1);
-        pBot->arg1[sizeof(pBot->arg1) - 1] = '\0';
-        strncpy(pBot->arg2, arg1, sizeof(pBot->arg2) - 1);
-        pBot->arg2[sizeof(pBot->arg2) - 1] = '\0';
+        snprintf(pBot->arg1, sizeof(pBot->arg1), "buy");
+        snprintf(pBot->arg2, sizeof(pBot->arg2), "%s", arg1);
 
         // add argument
         if (arg2 != nullptr) {
-            strncpy(pBot->arg3, arg2, sizeof(pBot->arg3) - 1);
-            pBot->arg3[sizeof(pBot->arg3) - 1] = '\0';
+            snprintf(pBot->arg3, sizeof(pBot->arg3), "%s", arg2);
+        }
+        else {
+            pBot->arg3[0] = '\0';
         }
 
         pBot->console_nr = 1;     // start console command sequence
@@ -285,7 +285,7 @@ int BotBuyEquipment(cBot *pBot) {
  */
 void BotDecideWhatToBuy(cBot *pBot) {
     const int money = pBot->bot_money;
-    int buy_weapon = -1;
+    int buy_weapon;
 
     if (pBot->buy_primary) {
         buy_weapon = BotBuyPrimaryWeapon(pBot);
