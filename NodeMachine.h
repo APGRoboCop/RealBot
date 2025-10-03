@@ -119,7 +119,7 @@ public:
 
     static bool node_on_crate(const Vector& vOrigin, edict_t *pEdict);
 
-    static int node_dangerous(int iTeam, const Vector& vOrigin, float fMaxDistance);
+    int node_dangerous(int iTeam, const Vector& vOrigin, float fMaxDistance);
 
     int node_look_camp(const Vector& vOrigin, int iTeam, edict_t *pEdict);
 

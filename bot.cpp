@@ -242,6 +242,7 @@ void cBot::SpawnInit() {
 	bFirstOutOfSight = false;
 	buy_grenade = false;
 	buy_smokegrenade = false;
+	bIssuedInitialRadio = false;
 
 	buy_flashbang = 0;
 	if (RANDOM_LONG(0, 100) < ipWalkWithKnife) {
@@ -433,7 +434,7 @@ void cBot::NewRound() {
 
 
 	bFirstOutOfSight = false;
-
+	bIssuedInitialRadio = false;
 
 	f_strafe_speed = 0.0f;
 
@@ -1145,8 +1146,22 @@ void cBot::Combat() {
 
 	// Bot is on ladder
 	if (isOnLadder()) {
-		// TODO: Bot fights when on ladder
+		// When on a ladder, the bot is vulnerable.
+		// It should stop moving and try to fight back if it can see the enemy.
+		stopMoving();
 
+		if (isSeeingEnemy()) {
+			// Switch to a pistol if available, as it's more accurate on ladders.
+			if (hasSecondaryWeaponEquiped() && CarryWeaponType() != SECONDARY) {
+				pickWeapon(iSecondaryWeapon);
+			}
+
+			// Aim and fire at the enemy.
+			AimAtEnemy();
+			FireWeapon();
+		}
+
+		// Do not proceed with normal ground combat logic.
 		return;
 	}
 
@@ -1496,7 +1511,13 @@ void cBot::InteractWithPlayers() {
 		if (vip) {
 
 			// We do not forget our enemy, but we will try to get the heck out of here.
-			// TODO TODO TODO: code something here?
+			// A VIP bot should prioritize survival. Upon spotting an enemy, it should
+			// immediately seek cover and call for backup. This increases the chances of
+			// the VIP surviving the encounter.
+			FindCover(); // Find a suitable cover position away from the enemy.
+			if (FUNC_DoRadio(this)) {
+				UTIL_BotRadioMessage(this, 3, "3", "");  // Radio for backup.
+			}
 
 		}
 		// Whenever we hold a knife, get our primary weapon
@@ -1701,7 +1722,7 @@ vec_t cBot::ReturnTurnedAngle(float speed, float current, const float ideal) {
 
 	// check if the bot is already facing the idealpitch direction...
 	if (diff <= 1.0f)
-		return static_cast<int>(current);     // return number of degrees turned
+		return current;     // return number of degrees turned
 
 	// check if difference is less than the max degrees per turn
 	speed = std::min(diff, speed); // just need to turn a little bit (less than max)
@@ -1744,7 +1765,7 @@ vec_t cBot::ReturnTurnedAngle(float speed, float current, const float ideal) {
 		current -= 360;
 	if (current < -180)
 		current += 360;
-	return static_cast<int>(current);        // return what it should be
+	return current;        // return what it should be
 }
 
 // BOT: sub-function (DEFUSE) for ACT()
@@ -1786,7 +1807,7 @@ bool cBot::Defuse() {
 	const float distance = func_distance(pEdict->v.origin, vC4);
 
 	// can see C4
-	const bool canSeeC4 = canSeeVector(vC4);
+	const bool canSeeC4 = canSeeVector(vC4, pent);
 
 	if (!canSeeC4) {
 		rprint_trace("Defuse()", "Cannot see planted C4 - bailing");
@@ -2055,8 +2076,8 @@ void cBot::Act() {
 	v_shouldbe.z = 0; //unused? [APG]RoboCop[CL]
 
 	// set the body angles to point the gun correctly
-	pEdict->v.angles.x = ReturnTurnedAngle(ipTurnSpeed, pEdict->v.angles.x, v_shouldbe.x);
-	pEdict->v.angles.y = ReturnTurnedAngle(ipTurnSpeed, pEdict->v.angles.y, v_shouldbe.y);
+	pEdict->v.angles.x = ReturnTurnedAngle(static_cast<float>(ipTurnSpeed), pEdict->v.angles.x, v_shouldbe.x);
+	pEdict->v.angles.y = ReturnTurnedAngle(static_cast<float>(ipTurnSpeed), pEdict->v.angles.y, v_shouldbe.y);
 	pEdict->v.angles.z = 0;
 
 	// adjust the view angle pitch to aim correctly (MUST be after body v.angles stuff)
@@ -3323,10 +3344,14 @@ void cBot::Think() {
 	}
 
 	// 1 SECOND START OF ROUND
-	if (Game.getRoundStartedTime() + 1 > gpGlobals->time &&
-		Game.getRoundStartedTime() < gpGlobals->time) {
-		// TODO: Issue radio command?
-		this->rprint_trace("cBot::Think()", "First second of round");
+	if (!bIssuedInitialRadio &&
+		Game.getRoundStartedTime() < gpGlobals->time &&
+		Game.getRoundStartedTime() + 1.0f > gpGlobals->time) {
+		if (RANDOM_LONG(0, 100) < 30 && FUNC_DoRadio(this)) {
+			UTIL_BotRadioMessage(this, 2, "1", ""); // "Go, Go, Go!"
+		}
+		bIssuedInitialRadio = true;
+		this->rprint_trace("cBot::Think()", "First second of round, issued initial radio.");
 	}
 
 	// SITUATION: In freezetime
@@ -3981,9 +4006,7 @@ int cBot::getAmountOfHostagesBeingRescued() const
 }
 
 // Will return true when the vector is visible.
-// TODO: Make this function more flexible, ie able to hit an entity that it searches
-// and return true on that as well.  (mix it with the above function)
-bool cBot::canSeeVector(const Vector& vDest) const
+bool cBot::canSeeVector(const Vector& vDest, edict_t* pTargetEntity) const
 {
 	TraceResult tr;
 	const Vector start = pEdict->v.origin + pEdict->v.view_ofs;
@@ -3991,10 +4014,19 @@ bool cBot::canSeeVector(const Vector& vDest) const
 	// trace a line from bot's eyes to destination...
 	UTIL_TraceLine(start, vDest, ignore_monsters, pEdict->v.pContainingEntity, &tr);
 
-	if (tr.flFraction < 1.0f)
-		return false;
+	// if trace is not blocked, the vector is visible
+	if (tr.flFraction >= 1.0f)
+	{
+		return true;
+	}
 
-	return true;
+	// if we have a target entity, check if we hit it
+	if (pTargetEntity != nullptr && tr.pHit == pTargetEntity)
+	{
+		return true; // we hit our target, so we can "see" it
+	}
+
+	return false; // something is blocking the view
 }
 
 // The coming 2 shield functions where originaly created by Whistler;

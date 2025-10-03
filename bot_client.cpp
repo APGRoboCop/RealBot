@@ -610,9 +610,16 @@ void BotClient_CS_SayText(void *p, const int bot_index) {
         else if (state == 1) {
             // here must be some team check so we do not let bots
             // of the other team react to this somehow..
-            // - after playing with the dll i did not notice any weird stuff yet...
-            // - so only when people discover some bugs with this we are going to fix this
-            // - thing... ie "Only fix it when its broken".
+            edict_t* pPlayer = INDEXENT(ucEntIndex);
+            if (pPlayer)
+            {
+                const cBot* pBot = &bots[bot_index];
+                if (UTIL_GetTeam(pPlayer) != pBot->iTeam - 1)
+                {
+                    // message is from another team, don't process it
+                    state = -1; // reset state machine
+                }
+            }
         }
             // don't know?
         else if (state == 2) {

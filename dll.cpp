@@ -30,6 +30,11 @@
   **/
 
 #include <cstring>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <iterator>
+
 #include <extdll.h>
 #include <dllapi.h>
 #include <meta_api.h>
@@ -135,13 +140,16 @@ META_FUNCTIONS gMetaFunctionTable = {
     nullptr,                        // pfnGetEngineFunctions_Post()
 };
 
+constexpr const char* REALBOT_AUTHOR = "Stefan Hendriks";
+constexpr const char* REALBOT_URL = "http://realbot.bots-united.com/";
+
 plugin_info_t Plugin_info = {
         META_INTERFACE_VERSION,      // interface version
         "RealBot",                   // plugin name
-        rb_version_nr,                 // plugin version
+        rb_version_nr,               // plugin version
         __DATE__,                    // date of creation
-        "Stefan Hendriks",           // plugin author
-        "http://realbot.bots-united.com/",   // plugin URL
+        REALBOT_AUTHOR,            	 // plugin author
+        REALBOT_URL,               	 // plugin URL
         "REALBOT",                   // plugin logtag
         PT_CHANGELEVEL,              // when loadable <-- FIX
         PT_ANYTIME,                  // when unloadable
@@ -171,8 +179,8 @@ C_DLLEXPORT int Meta_Query(const char* ifvers, plugin_info_t** pPlugInfo,
             Plugin_info.ifvers);
 
         // if plugin has later interface version, it's incompatible (update metamod)
-        sscanf(ifvers, "%d:%d", &mmajor, &mminor);
-        sscanf(META_INTERFACE_VERSION, "%d:%d", &pmajor, &pminor);
+        std::sscanf(ifvers, "%d:%d", &mmajor, &mminor);
+        std::sscanf(META_INTERFACE_VERSION, "%d:%d", &pmajor, &pminor);
         if (pmajor > mmajor || (pmajor == mmajor && pminor > mminor)) {
             LOG_CONSOLE(PLID,
                 "metamod version is too old for this plugin; update metamod");
@@ -655,9 +663,9 @@ void StartFrame() {
 
             // go through all clients (except bots)
             for (iIndex = 1; iIndex <= gpGlobals->maxClients; iIndex++) {
-                edict_t* pPlayer = INDEXENT(iIndex);
+                edict_t* p_player = INDEXENT(iIndex);
                 // skip invalid players
-                if (pPlayer && !pPlayer->free) {
+                if (p_player && !p_player->free) {
                     // we found a player which is alive. w00t
                     welcome_time = gpGlobals->time + 10.0f;
                     break;
@@ -681,26 +689,26 @@ void StartFrame() {
 
              */
             for (iIndex = 1; iIndex <= gpGlobals->maxClients; iIndex++) {
-                edict_t* pPlayer = INDEXENT(iIndex);
+                edict_t* p_player = INDEXENT(iIndex);
                 // skip invalid players and skip self (i.e. this bot)
-                if (pPlayer && !pPlayer->free) {
+                if (p_player && !p_player->free) {
                     // skip bots!
-                    if (UTIL_GetBotPointer(pPlayer))
+                    if (UTIL_GetBotPointer(p_player))
                         continue;
 
                     // skip fake clients
-                    if (pPlayer->v.flags & FL_THIRDPARTYBOT
-                        || pPlayer->v.flags & FL_FAKECLIENT)
+                    if (p_player->v.flags & FL_THIRDPARTYBOT
+                        || p_player->v.flags & FL_FAKECLIENT)
                         continue;
 
                     // random color
                     r = RANDOM_LONG(30, 255);
                     g = RANDOM_LONG(30, 255);
                     b = RANDOM_LONG(30, 255);
-                    HUD_DrawString(r, g, b, total_welcome, pPlayer);
+                    HUD_DrawString(r, g, b, total_welcome, p_player);
 
                     // use speak command
-                    if (pPlayer == pHostEdict)
+                    if (p_player == pHostEdict)
                         UTIL_SpeechSynth(pHostEdict, Game.RandomSentence());
                 }
             }
@@ -758,15 +766,15 @@ void StartFrame() {
         int iHumans = 0, iBots = 0;
 
         // Search for human players, simple method...
-        for (int i = 1; i <= gpGlobals->maxClients; i++) {
-            edict_t* pPlayer = INDEXENT(i);
+        for (int j = 1; j <= gpGlobals->maxClients; j++) {
+            edict_t* p_player = INDEXENT(j);
             // skip invalid players and skip self (i.e. this bot)
-            if (pPlayer && !pPlayer->free) {
+            if (p_player && !p_player->free) {
                 // a bot
-                if (UTIL_GetBotPointer(pPlayer) != nullptr)
+                if (UTIL_GetBotPointer(p_player) != nullptr)
                     iBots++;
                 else {
-                    if (pPlayer->v.flags & FL_CLIENT)
+                    if (p_player->v.flags & FL_CLIENT)
                         iHumans++; // it is 'human' (well unless some idiot uses another bot, i cannot detect that!)
                 }
             }
@@ -1117,123 +1125,57 @@ void UpdateClientData(const edict_s* ent, int sendweapons, clientdata_s* cd) //T
 }
 
 void ProcessBotCfgFile() {
-    char cmd_line[256];
-    static char server_cmd[80];
-    const char* arg2, * arg3, * arg4;
-    char msg[80];
-
     if (bot_cfg_pause_time > gpGlobals->time)
         return;
 
     if (bot_cfg_fp == nullptr)
         return;
 
-    int cmd_index = 0;
-    cmd_line[cmd_index] = 0;
-
-    int ch = fgetc(bot_cfg_fp);
-
-    // skip any leading blanks
-    while (ch == ' ')
-        ch = fgetc(bot_cfg_fp);
-
-    while (ch != EOF && ch != '\r' && ch != '\n') {
-        if (ch == '\t')           // convert tabs to spaces
-            ch = ' ';
-
-        cmd_line[cmd_index] = ch;
-
-        ch = fgetc(bot_cfg_fp);
-
-        // skip multiple spaces in input file
-        while (cmd_line[cmd_index] == ' ' && ch == ' ')
-            ch = fgetc(bot_cfg_fp);
-
-        cmd_index++;
-    }
-
-    if (ch == '\r')              // is it a carriage return?
-    {
-        ch = fgetc(bot_cfg_fp);   // skip the linefeed
-    }
-    // if reached end of file, then close it
-    if (ch == EOF) {
+    char line_buffer[256];
+    if (fgets(line_buffer, sizeof(line_buffer), bot_cfg_fp) == nullptr) {
+        // End of file or error
         std::fclose(bot_cfg_fp);
-
         bot_cfg_fp = nullptr;
-
         bot_cfg_pause_time = 8.0f;  // wait 8 seconds before starting
-    }
-
-    cmd_line[cmd_index] = 0;     // terminate the command line
-
-    // copy the command line to a server command buffer...
-    //TODO: To use std:string for this [APG]RoboCop[CL]
-    std::strncpy(server_cmd, cmd_line, sizeof(server_cmd));
-    server_cmd[sizeof(server_cmd) - 1] = '\0';
-
-    std::strcat(server_cmd, "\n");
-
-    cmd_index = 0;
-    const char* cmd = cmd_line;
-    const char* arg1 = arg2 = arg3 = arg4 = nullptr;
-
-    // skip to blank or end of string...
-    while (cmd_line[cmd_index] != ' ' && cmd_line[cmd_index] != 0)
-        cmd_index++;
-
-    if (cmd_line[cmd_index] == ' ') {
-        cmd_line[cmd_index++] = 0;
-        arg1 = &cmd_line[cmd_index];
-
-        // skip to blank or end of string...
-        while (cmd_line[cmd_index] != ' ' && cmd_line[cmd_index] != 0)
-            cmd_index++;
-
-        if (cmd_line[cmd_index] == ' ') {
-            cmd_line[cmd_index++] = 0;
-            arg2 = &cmd_line[cmd_index];
-
-
-            // skip to blank or end of string...
-            while (cmd_line[cmd_index] != ' ' && cmd_line[cmd_index] != 0)
-                cmd_index++;
-
-            if (cmd_line[cmd_index] == ' ') {
-                cmd_line[cmd_index++] = 0;
-                arg3 = &cmd_line[cmd_index];
-
-                // skip to blank or end of string...
-                while (cmd_line[cmd_index] != ' '
-                    && cmd_line[cmd_index] != 0)
-                    cmd_index++;
-
-                if (cmd_line[cmd_index] == ' ') {
-                    cmd_line[cmd_index++] = 0;
-                    arg4 = &cmd_line[cmd_index];
-                }
-            }
-        }
-    }
-
-    if (cmd_line[0] == '#' || cmd_line[0] == 0)
-        return;                   // return if comment or blank line
-
-    if (std::strcmp(cmd, "pause") == 0) {
-        bot_cfg_pause_time = gpGlobals->time + std::atoi(arg1);
         return;
     }
+
+    std::string cmd_line(line_buffer);
+
+    // Trim leading and trailing whitespace, and remove carriage returns
+    cmd_line.erase(0, cmd_line.find_first_not_of(" \t\n\r"));
+    cmd_line.erase(cmd_line.find_last_not_of(" \t\n\r") + 1);
+
+    if (cmd_line.empty() || cmd_line[0] == '#') {
+        return; // return if comment or blank line
+    }
+
+    std::stringstream ss(cmd_line);
+    std::string command;
+    ss >> command;
+
+    if (command == "pause") {
+        float pause_duration = 0.0f;
+        if (ss >> pause_duration) {
+            bot_cfg_pause_time = gpGlobals->time + pause_duration;
+        }
+        return;
+    }
+
     // 07/02/04 - This gives a user theoreticly the power as in the console
     // use 'realbot addbot' to add a bot, etc. I dont think we need more
     // it would double the work.
 
-    snprintf(msg, sizeof(msg), "BOT.CFG >> Executing command: %s", server_cmd);        // removed \n
+    char msg[256];
+    snprintf(msg, sizeof(msg), "BOT.CFG >> Executing command: %s", cmd_line.c_str());
     ALERT(at_console, msg);
 
-    if (IS_DEDICATED_SERVER())
-        printf("%s", msg);
+    if (IS_DEDICATED_SERVER()) {
+        printf("%s\n", msg);
+    }
 
-    SERVER_COMMAND(server_cmd);
+    std::string server_cmd = cmd_line + "\n";
+    SERVER_COMMAND(server_cmd.c_str());
 }
 
 // REALBOT COMMAND

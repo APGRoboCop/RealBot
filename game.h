@@ -40,25 +40,31 @@
 	**/
 
 	// GAME MESSAGES
-#define GAME_MSG_SUCCESS        0       // complete success
-#define GAME_MSG_FAILURE        1       // complete failure
+enum : std::uint8_t
+{
+	GAME_MSG_SUCCESS = 0,       // complete success
+	GAME_MSG_FAILURE = 1,       // complete failure
 
-#define GAME_MSG_FAIL_SERVERFULL     2  // failure + reason
-//#define GAME_MSG_WHATEVERYOUWANTTOPUTHERE
+	GAME_MSG_FAIL_SERVERFULL = 2,  // failure + reason
+	//#define GAME_MSG_WHATEVERYOUWANTTOPUTHERE
 
-// SITUATIONS
-#define GAME_YES                99
-#define GAME_NO                 98
+	// SITUATIONS
+	GAME_YES = 99,
+	GAME_NO = 98
+};
 
 // BROADCASTING
-#define BROADCAST_ROUND         0
-#define BROADCAST_MAP           1
-#define BROADCAST_KILLS_FULL   3        // killed, show full info (name+skill)
-#define BROADCAST_KILLS_MIN    4        // killed, show min info (name)
-#define BROADCAST_KILLS_NONE   5        // killed, show no information
-#define BROADCAST_DEATHS_FULL   6       // died, show full info (name+skill)
-#define BROADCAST_DEATHS_MIN    7       // died, show min info (name)
-#define BROADCAST_DEATHS_NONE   8       // died, show no information
+enum : std::uint8_t
+{
+	BROADCAST_ROUND = 0,
+	BROADCAST_MAP = 1,
+	BROADCAST_KILLS_FULL = 3,       // killed, show full info (name+skill)
+	BROADCAST_KILLS_MIN = 4,        // killed, show min info (name)
+	BROADCAST_KILLS_NONE = 5,       // killed, show no information
+	BROADCAST_DEATHS_FULL = 6,      // died, show full info (name+skill)
+	BROADCAST_DEATHS_MIN = 7,       // died, show min info (name)
+	BROADCAST_DEATHS_NONE = 8       // died, show no information
+};
 
 static constexpr int MAX_BOTS = 32;
 static constexpr int MAX_NAME_LENGTH = 32;

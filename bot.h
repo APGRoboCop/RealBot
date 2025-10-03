@@ -312,20 +312,21 @@ public:
     // ------------------------
     // BOOLEANS
     // ------------------------
-    bool buy_primary;
-    bool buy_secondary;
+    bool vip;
+    bool bWalkKnife;
     bool buy_ammo_primary;
     bool buy_ammo_secondary;
+    bool buy_primary;
+    bool buy_secondary;
     bool buy_armor;
-    bool buy_grenade;
-    bool buy_smokegrenade;       //31.08.04 Frashman added support for Smoke Grenade
-    bool bIsUsed;                // Bot is 'used'/'playing' (if set to true, the bot is active)
-    bool bInitialize;
     bool buy_defusekit;
-    bool bWalkKnife;             // likes to walk around with knife
-    bool vip;
-
     bool bFirstOutOfSight;
+    bool buy_grenade;
+    bool buy_smokegrenade;
+    bool bIssuedInitialRadio;
+
+    bool bInitialize;               // Has the bot been initialized yet?
+    bool bIsUsed;                   // Is this bot slot used?
 
     // ------------------------
     // HUD
@@ -413,7 +414,7 @@ public:
     float ReactionTime(int iSkill);      // Reaction time based upon skill
     void FindCover();
 
-    bool canSeeVector(const Vector& vDest) const;
+    bool canSeeVector(const Vector& vDest, edict_t* pTargetEntity = nullptr) const;
 
     bool canSeeEntity(edict_t* pEntity) const;
 

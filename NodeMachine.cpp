@@ -471,14 +471,44 @@ bool cNodeMachine::node_on_crate(const Vector& vOrigin, edict_t *pEdict)
     return false;
 }
 
-int cNodeMachine::node_dangerous(int iTeam, const Vector& vOrigin, float fMaxDistance) //TODO: Experimental & Incomplete [APG]RoboCop[CL]
+int cNodeMachine::node_dangerous(const int iTeam, const Vector& vOrigin, const float fMaxDistance) //TODO: Experimental & Incomplete [APG]RoboCop[CL]
 {
-	// check if node is dangerous
-	//int iDangerous = 0;
-	//int iDangerousCount = 0;
-	//int iDangerousIndex = 0;
-	
-    return 0;
+    int iBestNode = -1;
+    float fMaxDanger = 0.0f;
+
+    // Use Meredians to search for nodes
+    int iX, iY;
+    VectorToMeredian(vOrigin, &iX, &iY);
+
+    if (iX < 0 || iY < 0) {
+        return -1; // Invalid coordinates
+    }
+
+    // Search in the current and adjacent meridians to ensure we cover the full radius
+    for (int meredianX = iX - 1; meredianX <= iX + 1; ++meredianX) {
+        for (int meredianY = iY - 1; meredianY <= iY + 1; ++meredianY) {
+            // Ensure meridian coordinates are within bounds
+            if (meredianX < 0 || meredianX >= MAX_MEREDIANS || meredianY < 0 || meredianY >= MAX_MEREDIANS) {
+                continue;
+            }
+
+            for (const int iNode : Meredians[meredianX][meredianY].iNodes) {
+                if (iNode < 0) continue;
+
+                const float fDist = func_distance(vOrigin, Nodes[iNode].origin);
+
+                if (fDist < fMaxDistance) {
+                    const float fDanger = InfoNodes[iNode].fDanger[iTeam];
+                    if (fDanger > fMaxDanger) {
+                        fMaxDanger = fDanger;
+                        iBestNode = iNode;
+                    }
+                }
+            }
+        }
+    }
+
+    return iBestNode;
 }
 
 /**
@@ -1485,8 +1515,7 @@ void cNodeMachine::experience_save() {
             std::fwrite(&InfoNode, sizeof(tInfoNode), 1, rbl);
         }
 
-        if (iMaxUsedNodes > MAX_NODES)
-            iMaxUsedNodes = MAX_NODES;
+        iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
 
         // Here write down the MAX amounts of nodes used from vis table!
         const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
@@ -1556,8 +1585,7 @@ void cNodeMachine::experience_load() {
             std::fread(&iMaxUsedNodes, sizeof(int), 1, rbl);
 
             // make sure we never exceed the limit
-            if (iMaxUsedNodes > MAX_NODES)
-                iMaxUsedNodes = MAX_NODES;
+            iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
 
             const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
 
@@ -1572,8 +1600,7 @@ void cNodeMachine::experience_load() {
 
             std::fread(&iMaxUsedNodes, sizeof(int), 1, rbl);
             // make sure we never exceed the limit
-            if (iMaxUsedNodes > MAX_NODES)
-                iMaxUsedNodes = MAX_NODES;
+            iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
 
             const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
 
@@ -1984,19 +2011,13 @@ int cNodeMachine::getFreeGoalIndex() const {
  * @param pEdict
  * @return
  */
-bool cNodeMachine::hasGoalWithEdict(edict_t *pEdict) const
+bool cNodeMachine::hasGoalWithEdict(edict_t* pEdict) const
 {
     if (pEdict == nullptr) return false; // no edict == by default no
 
-    for (const tGoal& Goal : Goals)
-    {
-        if (Goal.pGoalEdict == pEdict) {
-            return true;
-        }
-    }
-
-    // Does not exist
-    return false;
+    return std::any_of(std::begin(Goals), std::end(Goals), [pEdict](const tGoal& goal) {
+        return goal.pGoalEdict == pEdict;
+        });
 }
 
 void cNodeMachine::resetCheckedValuesForGoals() {
@@ -2051,8 +2072,7 @@ void cNodeMachine::updateGoals() {
         // skip invalid players and skip self (i.e. this bot)
         if (pPlayer && !pPlayer->free) {
             // skip this player if not alive (i.e. dead or dying)
-            if (!IsAlive(pPlayer))
-                continue;
+            if (!IsAlive(pPlayer)) continue;
             if (UTIL_IsVip(pPlayer)) {
                 addGoal(pPlayer, GOAL_VIP, pPlayer->v.origin + Vector(0, 0, 32));
             }
@@ -2410,9 +2430,9 @@ void cNodeMachine::openNeighbourNodes(const int startNodeIndex, const int nodeTo
 //                rblog(msg);
                 nodeStar.parent = nodeToOpenNeighboursFrom;
                 nodeStar.cost = cost;
-            }
+		    }
         }
-    }
+	}
 }
 
 /**
@@ -2545,7 +2565,6 @@ int cNodeMachine::node_camp(const Vector& vOrigin, const int iTeam) const
     }
 
     return iBestNode;
-
 }
 
 // Check if iFrom is visible from other nodes (and opposite)
@@ -2584,6 +2603,8 @@ int cNodeMachine::node_look_camp(const Vector& vOrigin, const int iTeam, edict_t
 
     // Theory:
     // Find a node, far, and a lot danger...
+    // and with less visibility
+
     const int iFrom = getClosestNode(vOrigin, 75, pEdict);
     // Search in this meredian
     for (int i = 0; i < MAX_NODES; i++) {
@@ -2603,11 +2624,7 @@ int cNodeMachine::node_look_camp(const Vector& vOrigin, const int iTeam, edict_t
                         // Set to false
                         SetVisibilityFromTo(iFrom, iNode, false);
                         SetVisibilityFromTo(iNode, iFrom, false);
-                    } else {
-                        SetVisibilityFromTo(iFrom, iNode, true);
-                        SetVisibilityFromTo(iNode, iFrom, true);
                     }
-
                 } else {
                     if (GetVisibilityFromTo(iFrom, iNode) == VIS_BLOCKED)    // BERKED
                     {
@@ -2668,13 +2685,13 @@ void cNodeMachine::path_walk(cBot *pBot, const float distanceMoved) {
     pBot->setMoveSpeed(pBot->f_max_speed);
 
     // Walk the path
-    const int currentNodeToHeadFor = pBot->getCurrentPathNodeToHeadFor();        // Node we are heading for
+    const int currentNodeToHeadFor = pBot->getCurrentPathNodeToHeadFor();        // Node we are heading to
 
     // possibly end of path reached, overshoot destination?
     if (currentNodeToHeadFor < 0) {
         pBot->rprint_trace("cNodeMachine::path_walk", "Finished - there is no current node to head for");
         pBot->forgetGoal();
-        pBot->forgetPath();
+        pBot->stopMoving();
         return;
     }
 
@@ -2700,19 +2717,18 @@ void cNodeMachine::path_walk(cBot *pBot, const float distanceMoved) {
                                pBot->pEdict, &trb);
             } else {
                 UTIL_TraceLine(pBot->pEdict->v.origin, vButtonVector,
-                               ignore_monsters, dont_ignore_glass,
-                               pBot->pEdict, &trb);
+                               ignore_monsters, dont_ignore_glass, pBot->pEdict, &trb);
             }
 
             bool isGood = false;
 
             // if nothing hit:
-            if (trb.flFraction >= 1.0f)
+            if (trb.flFraction >= 1.0f) {
                 isGood = true;
-            else {
-                // we hit this button we check for
-                if (trb.pHit == pBot->pButtonEdict)
-                    isGood = true;
+            }
+            // we hit this button we check for
+            if (trb.pHit == pBot->pButtonEdict) {
+                isGood = true;
             }
 
             if (isGood || bTrigger) {
@@ -3402,7 +3418,7 @@ void cNodeMachine::path_think(cBot *pBot, const float distanceMoved) {
     // A score of 1.0 is max.
 
     pBot->rprint_normal("cNodeMachine::path_think", "going to choose goal");
-    for (int goalIndex = 0; goalIndex < MAX_GOALS; goalIndex++) {
+    for (int goalIndex = 0; goalIndex < MAX_GOALS; ++goalIndex) {
 	    constexpr int maxCheckedScore = 5;
 
 	    // Make sure this goal is valid
@@ -3836,7 +3852,7 @@ int cNodeMachine::node_cover(const int iFrom, const int iTo, edict_t *pEdict) {
     // is no option.
 
     // Note: this function is only called once for finding some node to take cover from
-    // Most bad situation would be that 31 bots call this function in 1 frame.
+    // Most bad scenario would be that 31 bots call this function in 1 frame.
 
     // TEMP sollution:
     float fClosest = 512;
@@ -3857,10 +3873,23 @@ int cNodeMachine::node_cover(const int iFrom, const int iTo, edict_t *pEdict) {
 
                     if (tr.flFraction < 1.0f)
                         bVisible = false;
-                } else {
-                    if (GetVisibilityFromTo(iFrom, i) == VIS_BLOCKED)        // BERKED
+                }
+
+                if (GetVisibilityFromTo(i, iFrom) == VIS_UNKNOWN)   // BERKED
+                {
+                    UTIL_TraceLine(Nodes[i].origin, Nodes[iFrom].origin,
+                                   ignore_monsters, ignore_glass, pEdict, &tr);
+
+                    if (tr.flFraction < 1.0f)
                         bVisible = false;
                 }
+
+                // only when really blocked, count it as false.
+                if (GetVisibilityFromTo(iFrom, i) == VIS_BLOCKED)
+                    bVisible = false;
+
+                if (GetVisibilityFromTo(i, iFrom) == VIS_BLOCKED)
+                bVisible = false;
 
                 // Hit something
                 if (bVisible == false) {
@@ -4017,33 +4046,29 @@ void cNodeMachine::dump_goals() const
 // EVY: another dump
 void cNodeMachine::dump_path(const int iBot, const int CurrentPath) const
 {
-    char buffer[80];
-    int i, CurrentNode;
+    char buffer[181];
+    snprintf(buffer, 180, "  Path for bot %d (current index %d): ", iBot, CurrentPath);
+    rblog(buffer);
 
-    if (CurrentPath >= 0)
-        CurrentNode = iPath[iBot][CurrentPath];
-    else
-        CurrentNode = -1;
-    rblog("  Path is: ");
-    for (i = 0; i < MAX_NODES && iPath[iBot][i] >= 0; i++) {
-        if (i == CurrentPath)
-            snprintf(buffer, sizeof(buffer), "<%d> ", iPath[iBot][i]);
-        else
-            snprintf(buffer, sizeof(buffer), "%d ", iPath[iBot][i]);
-        rblog(buffer);
-    }
-    rblog("\n");
-    if (CurrentNode < 0)
-        return;
-    rblog("  Current direct neighbours are:\n");
-    for (i = 0; i < MAX_NEIGHBOURS; i++)
-        if (Nodes[CurrentNode].iNeighbour[i] >= 0) {
-	        const int j = Nodes[CurrentNode].iNeighbour[i];
-	        const Vector v = Nodes[j].origin;
-            snprintf(buffer, sizeof(buffer), "      %d (%.0f, %.0f, %.0f)\n", j, v.x, v.y, v.z);
+    bool path_exists = false;
+    for (int i = 0; i < MAX_PATH_NODES; ++i) {
+        int node_index = iPath[iBot][i];
+        if (node_index != -1) {
+            path_exists = true;
+            snprintf(buffer, 180, "%d ", node_index);
             rblog(buffer);
         }
-    rblog("\n");
+        else {
+            break; // End of path
+        }
+    }
+
+    if (!path_exists) {
+        rblog("No path.\n");
+    }
+    else {
+        rblog("\n");
+    }
 }
 
 // EVY a lot of things to draw: nodes, neighbours, goals, paths, ...
@@ -4052,37 +4077,29 @@ void cNodeMachine::dump_path(const int iBot, const int CurrentPath) const
 // width and height of the debug bitmap image
 enum : std::uint16_t
 {
-	DEBUG_BMP_WIDTH = 2048,
-	DEBUG_BMP_HEIGHT = 2048
+    DEBUG_BMP_WIDTH = 2048,
+    DEBUG_BMP_HEIGHT = 2048
 };
 
-static unsigned char *bmp_buffer;
+static std::vector<unsigned char> bmp_buffer;
 static float maxx, maxy, minx, miny;
 static float scale;
 
 static void InitDebugBitmap() {
     // this function allocates memory and clears the debug bitmap buffer
-
-//    if (bmp_buffer)
-        free(bmp_buffer);         // reliability check, free BMP buffer if already allocated
-
-    bmp_buffer = nullptr;
-    bmp_buffer = static_cast<unsigned char*>(malloc(DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT));    // allocate memory
-    if (bmp_buffer == nullptr) {
-        std::fprintf(stderr,
-                "InitDebugBitmap(): unable to allocate %d kbytes for BMP buffer!\n",
-                DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT / 1024);
-        exit(1);
+    try {
+        bmp_buffer.assign(static_cast<size_t>(DEBUG_BMP_WIDTH) * DEBUG_BMP_HEIGHT, 14);
     }
-
-    std::memset(bmp_buffer, 14, DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT);  // Set all to all white (and allow for darker palette)
+    catch (const std::bad_alloc& e) {
+        std::fprintf(stderr, "InitDebugBitmap(): unable to allocate %d kbytes for BMP buffer! Error: %s\n",
+            DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT / 1024, e.what());
+        bmp_buffer.clear(); // Ensure buffer is in a valid state
+    }
 }
 
 // Draw a small cross
 static void DrawPoint(const Vector& v, const unsigned char color) {
-	if (bmp_buffer == nullptr) {
-        std::fprintf(stderr,
-                "DrawLineInDebugBitmap(): function called with NULL BMP buffer!\n");
+    if (bmp_buffer.empty()) {
         return;                   // reliability check: cancel if bmp buffer unallocated
     }
     // translate the world coordinates in image pixel coordinates
@@ -4094,7 +4111,7 @@ static void DrawPoint(const Vector& v, const unsigned char color) {
         std::fprintf(stderr,
                 "DrawLineInDebugBitmap(): bad BMP buffer index %d (range 0 - %d)\n",
                 offset, DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT);
-        exit(1);
+        std::exit(1);
     }
 
     bmp_buffer[offset] = color;  // draw the point itself
@@ -4119,9 +4136,7 @@ static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, cons
     int stepx, stepy;
     int fraction;
 
-    if (bmp_buffer == nullptr) {
-        std::fprintf(stderr,
-                "DrawLineInDebugBitmap(): function called with NULL BMP buffer!\n");
+    if (bmp_buffer.empty()) {
         return;                   // reliability check: cancel if bmp buffer unallocated
     }
     // translate the world coordinates in image pixel coordinates
@@ -4148,7 +4163,7 @@ static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, cons
         std::fprintf(stderr,
                 "DrawLineInDebugBitmap(): bad BMP buffer index %d (range 0 - %d)\n",
                 offset, DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT);
-        exit(1);
+        std::exit(1);
     }
 
     bmp_buffer[offset] = color;  // draw the first point of the line
@@ -4177,7 +4192,7 @@ static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, cons
                 std::fprintf(stderr,
                         "DrawLineInDebugBitmap(): bad BMP buffer index %d (range 0 - %d)\n",
                         offset, DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT);
-                exit(1);
+                std::exit(1);
             }
 
             bmp_buffer[offset] = color;    // set this point to have the specified color
@@ -4205,7 +4220,7 @@ static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, cons
                 std::fprintf(stderr,
                         "DrawLineInDebugBitmap(): bad BMP buffer index %d (range 0 - %d)\n",
                         offset, DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT);
-                exit(1);
+                std::exit(1);
             }
             bmp_buffer[offset] = color;    // set this point to have the specified color
         }
@@ -4213,32 +4228,30 @@ static void DrawLineInDebugBitmap(const Vector& v_from, const Vector& v_to, cons
     //return;                      // finished, segment has been printed into the BMP dot matrix
 }
 
-// from PMB & Botman code
-
-static void WriteDebugBitmap(const char *filename) {
-	int data_start, file_size;
+static void WriteDebugBitmap(const char* filename) {
+    int data_start, file_size;
     unsigned long dummy;
 
-    if (bmp_buffer == nullptr) {
+    if (bmp_buffer.empty()) {
         std::fprintf(stderr,
-                "WriteDebugBitmap(): function called with NULL BMP buffer!\n");
+            "WriteDebugBitmap(): function called with NULL BMP buffer!\n");
         return;                   // reliability check: cancel if bmp buffer unallocated
     }
     // open (or create) the .bmp file for writing in binary mode...
     FILE* fp = std::fopen(filename, "wb");
     if (fp == nullptr) {
         std::fprintf(stderr, "WriteDebugBitmap(): unable to open BMP file!\n");
-	// if (bmp_buffer)
-            free(bmp_buffer);      // cannot open file, free DXF buffer
-        bmp_buffer = nullptr;
+        bmp_buffer.clear();         // Ensure buffer is in a valid state
         return;                   // cancel if error creating file
     }
     // write the BMP header
-    fwrite("BM", 2, 1, fp);      // write the BMP header tag
-    fseek(fp, sizeof(unsigned long), SEEK_CUR);  // skip the file size field (will write it last)
-    fwrite("\0\0", sizeof(short), 1, fp);        // dump zeros in the first reserved field (unused)
-    fwrite("\0\0", sizeof(short), 1, fp);        // dump zeros in the second reserved field (unused)
-    fseek(fp, sizeof(unsigned long), SEEK_CUR);  // skip the data start field (will write it last)
+    constexpr char bmp_magic[] = { 'B', 'M' };
+    std::fwrite(bmp_magic, sizeof(bmp_magic), 1, fp); // write the BMP header tag
+    std::fseek(fp, sizeof(unsigned long), SEEK_CUR);  // skip the file size field (will write it last)
+    constexpr short reserved = 0;
+    std::fwrite(&reserved, sizeof(short), 1, fp);        // dump zeros in the first reserved field (unused)
+    std::fwrite(&reserved, sizeof(short), 1, fp);        // dump zeros in the second reserved field (unused)
+    std::fseek(fp, sizeof(unsigned long), SEEK_CUR);  // skip the data start field (will write it last)
 
     // write the info header
     dummy = 40;
@@ -4263,114 +4276,113 @@ static void WriteDebugBitmap(const char *filename) {
     std::fwrite(&dummy, sizeof(unsigned long), 1, fp);        // write the # of important colors (wtf ?)
 
     // write the color palette (B, G, R, reserved byte)
-    fputc(0x00, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 0=BLACK
-    fputc(0xFF, fp);
-    fputc(0xFF, fp);
-    fputc(0xFF, fp);
-    fputc(0x00, fp);             // 1=WHITE
-    fputc(0x80, fp);
-    fputc(0x80, fp);
-    fputc(0x80, fp);
-    fputc(0x00, fp);             // 2=GREY
-    fputc(0xC0, fp);
-    fputc(0xC0, fp);
-    fputc(0xC0, fp);
-    fputc(0x00, fp);             // 3=SILVER
-    fputc(0x80, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 4=DARK BLUE
-    fputc(0xFF, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 5=BLUE
-    fputc(0x80, fp);
-    fputc(0x80, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 6=DARK YELLOW
-    fputc(0xFF, fp);
-    fputc(0xFF, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 7=YELLOW ? LIGHT BLUE
-    fputc(0x00, fp);
-    fputc(0x80, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 8=DARK GREEN
-    fputc(0x00, fp);
-    fputc(0xFF, fp);
-    fputc(0x00, fp);
-    fputc(0x00, fp);             // 9=GREEN
-    fputc(0x00, fp);
-    fputc(0x00, fp);
-    fputc(0x80, fp);
-    fputc(0x00, fp);             // 10=DARK RED
-    fputc(0x00, fp);
-    fputc(0x00, fp);
-    fputc(0xFF, fp);
-    fputc(0x00, fp);             // 11=RED
-    fputc(0x80, fp);
-    fputc(0x00, fp);
-    fputc(0x80, fp);
-    fputc(0x00, fp);             // 12=DARK PURPLE
-    fputc(0xFF, fp);
-    fputc(0x00, fp);
-    fputc(0xFF, fp);
-    fputc(0x00, fp);             // 13=PURPLE
-    fputc(0xFF, fp);
-    fputc(0xFF, fp);
-    fputc(0xFF, fp);
-    fputc(0x00, fp);             // 14=WHITE
-    fputc(0xEF, fp);
-    fputc(0xEF, fp);
-    fputc(0xEF, fp);
-    fputc(0x00, fp);             // 15=WHITE-GREY
-    fputc(0xDF, fp);
-    fputc(0xDF, fp);
-    fputc(0xDF, fp);
-    fputc(0x00, fp);             // 16=GREY
-    fputc(0xCF, fp);
-    fputc(0xCF, fp);
-    fputc(0xCF, fp);
-    fputc(0x00, fp);             // 17=DARKGREY
-    fputc(0xBF, fp);
-    fputc(0xBF, fp);
-    fputc(0xBF, fp);
-    fputc(0x00, fp);             // 18=DARKGREY
-    fputc(0xAF, fp);
-    fputc(0xAF, fp);
-    fputc(0xAF, fp);
-    fputc(0x00, fp);             // 19=DARKGREY
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 0=BLACK
+    std::fputc(0xFF, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);             // 1=WHITE
+    std::fputc(0x80, fp);
+    std::fputc(0x80, fp);
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);             // 2=GREY
+    std::fputc(0xC0, fp);
+    std::fputc(0xC0, fp);
+    std::fputc(0xC0, fp);
+    std::fputc(0x00, fp);             // 3=SILVER
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 4=DARK BLUE
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 5=BLUE
+    std::fputc(0x80, fp);
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 6=DARK YELLOW
+    std::fputc(0xFF, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 7=YELLOW ? LIGHT BLUE
+    std::fputc(0x00, fp);
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 8=DARK GREEN
+    std::fputc(0x00, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);             // 9=GREEN
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);             // 10=DARK RED
+    std::fputc(0x00, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);             // 11=RED
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0x80, fp);
+    std::fputc(0x00, fp);             // 12=DARK PURPLE
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);             // 13=PURPLE
+    std::fputc(0xFF, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0xFF, fp);
+    std::fputc(0x00, fp);             // 14=WHITE
+    std::fputc(0xEF, fp);
+    std::fputc(0xEF, fp);
+    std::fputc(0xEF, fp);
+    std::fputc(0x00, fp);             // 15=WHITE-GREY
+    std::fputc(0xDF, fp);
+    std::fputc(0xDF, fp);
+    std::fputc(0xDF, fp);
+    std::fputc(0x00, fp);             // 16=GREY
+    std::fputc(0xCF, fp);
+    std::fputc(0xCF, fp);
+    std::fputc(0xCF, fp);
+    std::fputc(0x00, fp);             // 17=DARKGREY
+    std::fputc(0xBF, fp);
+    std::fputc(0xBF, fp);
+    std::fputc(0xBF, fp);
+    std::fputc(0x00, fp);             // 18=DARKGREY
+    std::fputc(0xAF, fp);
+    std::fputc(0xAF, fp);
+    std::fputc(0xAF, fp);
+    std::fputc(0x00, fp);             // 19=DARKGREY
 
     for (dummy = 20; dummy < 256; dummy++) {
         // fill out the rest of the palette with zeros
-        fputc(0x00, fp);
-        fputc(0x00, fp);
-        fputc(0x00, fp);
-        fputc(0x00, fp);
+        std::fputc(0x00, fp);
+        std::fputc(0x00, fp);
+        std::fputc(0x00, fp);
+        std::fputc(0x00, fp);
     }
 
     // write the actual image data
     data_start = ftell(fp);      // get the data start position (that's where we are now)
-    std::fwrite(bmp_buffer, DEBUG_BMP_WIDTH * DEBUG_BMP_HEIGHT, 1, fp);       // write the image
+    std::fwrite(bmp_buffer.data(), bmp_buffer.size(), 1, fp);       // write the image
     file_size = ftell(fp);       // get the file size now that the image is dumped
 
     // now that we've dumped our data, we know the file size and the data start position
 
-    fseek(fp, 0, SEEK_SET);      // rewind
-    fseek(fp, 2, SEEK_CUR);      // skip the BMP header tag "BM"
+    std::fseek(fp, 0, SEEK_SET);      // rewind
+    std::fseek(fp, 2, SEEK_CUR);      // skip the BMP header tag "BM"
     std::fwrite(&file_size, sizeof(unsigned long), 1, fp);    // write the file size at its location
-    fseek(fp, sizeof(short), SEEK_CUR);  // skip the first reserved field
-    fseek(fp, sizeof(short), SEEK_CUR);  // skip the second reserved field
+    std::fseek(fp, sizeof(short), SEEK_CUR);  // skip the first reserved field
+    std::fseek(fp, sizeof(short), SEEK_CUR);  // skip the second reserved field
     std::fwrite(&data_start, sizeof(unsigned long), 1, fp);   // write the data start at its location
 
     std::fclose(fp);                  // finished, close the BMP file
 
-	// if (bmp_buffer)
-        free(bmp_buffer);         // and free the BMP buffer
-    bmp_buffer = nullptr;
+    bmp_buffer.clear();         // and free the BMP buffer
+    bmp_buffer.shrink_to_fit();
 
     //return;                      // and return
 }
@@ -4411,19 +4423,22 @@ void cNodeMachine::FindMinMax() const
 // Palette is defined such that increasing the palette index
 // Makes a slightly darker dark
 
-void cNodeMachine::MarkAxis() {
-	const int x0 = static_cast<int>((0 - minx) / scale);
-	const int y0 = static_cast<int>((0 - miny) / scale);
+// Mark X and Y axis
+void cNodeMachine::MarkAxis()
+{
+    int x, y;
 
-    // Mark X axis by keeping X to 0 and varying Y
-    if (minx < 0 && 0 < maxx)
-        for (int y = 0; y < DEBUG_BMP_HEIGHT; y++)
-            bmp_buffer[y * DEBUG_BMP_WIDTH + x0] += 2;
+    // Mark X axis
+    y = static_cast<int>((0 - miny) / scale);
+    if (y >= 0 && y < DEBUG_BMP_HEIGHT)
+        for (x = 0; x < DEBUG_BMP_WIDTH; x++)
+            bmp_buffer[y * DEBUG_BMP_WIDTH + x] = 17;
 
-    // Mark Y axis by keeping Y to 0 and varying X
-    if (miny < 0 && 0 < maxy)
-        for (int x = 0; x < DEBUG_BMP_WIDTH; x++)
-            bmp_buffer[y0 * DEBUG_BMP_WIDTH + x] += 2;
+    // Mark Y axis
+    x = static_cast<int>((0 - minx) / scale);
+    if (x >= 0 && x < DEBUG_BMP_WIDTH)
+        for (y = 0; y < DEBUG_BMP_HEIGHT; y++)
+            bmp_buffer[y * DEBUG_BMP_WIDTH + x] = 17;
 }
 
 // 05/07/04
