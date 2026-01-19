@@ -31,6 +31,7 @@
 
 
 #include <cstring>
+#include <cmath>
 #include <extdll.h>
 #include <dllapi.h>
 #include <meta_api.h>
@@ -48,7 +49,7 @@ extern edict_t* pHostEdict;
 // Obstacle Avoidance
 constexpr float TURN_ANGLE = 75.0f; // Degrees to turn when avoiding obstacles
 constexpr float MOVE_DISTANCE = 24.0f; // Distance to move forward
-constexpr std::uint8_t SCAN_RADIUS = 60; // Radius to scan to prevent blocking with players
+constexpr float SCAN_RADIUS = 60.0f; // Radius to scan to prevent blocking with players
 
 // Bot dimensions and movement capabilities
 constexpr float BODY_SIDE_OFFSET = 16.0f; // Offset from center to check for body clearance
@@ -66,9 +67,11 @@ constexpr float FEET_OFFSET = -35.0f; // Offset from origin to near the bot's fe
  * @param angle
  * @return
  */
-float fixAngle(const float angle) {
-    if (angle > 180.0f) return angle - 360.0f;
-    if (angle < -180.0f) return angle + 360.0f;
+float fixAngle(float angle) {
+	// Use std::fmod for better performance with extreme values - [APG]RoboCop[CL]
+    angle = std::fmod(angle, 360.0f);
+    if (angle > 180.0f) angle -= 360.0f;
+    else if (angle < -180.0f) angle += 360.0f;
     return angle;
 }
 
@@ -81,6 +84,9 @@ void botFixIdealYaw(edict_t* pEdict) {
 }
 
 bool traceLine(const Vector& v_source, const Vector& v_dest, const edict_t* pEdict, TraceResult& tr) {
+    if (!pEdict || !pEdict->v.pContainingEntity) {
+        return false;
+    }
     UTIL_TraceLine(v_source, v_dest, dont_ignore_monsters, pEdict->v.pContainingEntity, &tr);
     return tr.flFraction >= 1.0f;
 }
@@ -124,6 +130,9 @@ bool BotCanJumpUp(cBot* pBot) {
     // will not fit into.  These horizontal and vertical TraceLines seem
     // to catch most of the problems with falsely trying to jump on something
     // that the bot can not get onto.
+    if (!pBot || !pBot->pEdict) {
+        return false;
+    }
 
     const edict_t* pEdict = pBot->pEdict;
     Vector v_forward, v_right;
@@ -153,6 +162,9 @@ bool BotCanDuckUnder(cBot* pBot) {
     // is clear.  I then need to trace from the ground up, 72 units, to make
     // sure that there is something blocking the TraceLine.  Then we know
     // we can duck under it.
+    if (!pBot || !pBot->pEdict) {
+        return false;
+    }
 
     const edict_t* pEdict = pBot->pEdict;
     Vector v_forward, v_right;
@@ -179,12 +191,15 @@ bool isBotNearby(const cBot* pBot, const float radius) {
         return false; // Validate input
     }
 
+    const float radiusSquared = radius * radius;
+
     for (int i = 0; i < gpGlobals->maxClients; ++i) {
         edict_t* pPlayer = INDEXENT(i + 1);
 
         if (pPlayer && !pPlayer->free && pPlayer != pBot->pEdict) {
-            float distance = (pPlayer->v.origin - pBot->pEdict->v.origin).Length();
-            if (distance < radius) {
+            Vector diff = pPlayer->v.origin - pBot->pEdict->v.origin;
+            float distanceSquared = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
+            if (distanceSquared < radiusSquared) {
                 return true;
             }
         }

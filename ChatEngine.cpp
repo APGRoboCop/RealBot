@@ -188,8 +188,8 @@ void cChatEngine::think() {
                 cBot* pBotPointer = UTIL_GetBotPointer(pPlayer);
 
                 if (pBotPointer != nullptr)
-                    if (RANDOM_LONG(0, 100) <
-                        pBotPointer->ipChatRate + 25) {
+                    if (constexpr int CHAT_RATE_THRESHOLD = 25; RANDOM_LONG(0, 100)
+                        < pBotPointer->ipChatRate + CHAT_RATE_THRESHOLD) {
                         // When we have at least 1 sentence...
                         if (iMax > -1) {
                             // choose randomly a reply

@@ -353,11 +353,12 @@ void BotConsole(cBot *pBot) {
     // Nothing to execute and alive, think about any console action to be taken.
     if (pBot->console_nr == 0 && pBot->pEdict->v.health > 0) {
         if (pBot->f_console_timer <= gpGlobals->time) {
-            pBot->arg1[0] = 0;     // clear
-            pBot->arg2[0] = 0;     // the
-            pBot->arg3[0] = 0;     // variables
+            pBot->arg1[0] = '\0';
+            pBot->arg2[0] = '\0';
+            pBot->arg3[0] = '\0';
         }
         ConsoleThink(pBot);       // Here it will use the console, think about what to do with it
+        return; // Early exit - no need to check console_nr again [APG]RoboCop[CL]
     }
 
     // Here the bot will excecute the console commands if the console counter has been set/changed
