@@ -723,8 +723,7 @@ void StartFrame() {
 
         for (i = 0; i < 32; i++) {
             if (bots[i].bIsUsed) {
-                std::memset(&cd, 0, sizeof(cd));
-
+            	cd = {};  // C++11 value initialization - [APG]RoboCop[CL]
                 MDLL_UpdateClientData(bots[i].pEdict, 1, &cd);
 
                 // see if a weapon was dropped...

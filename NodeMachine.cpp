@@ -4426,10 +4426,10 @@ void cNodeMachine::FindMinMax() const
 // Mark X and Y axis
 void cNodeMachine::MarkAxis()
 {
-    int x, y;
+    int x;
 
     // Mark X axis
-    y = static_cast<int>((0 - miny) / scale);
+    int y = static_cast<int>((0 - miny) / scale);
     if (y >= 0 && y < DEBUG_BMP_HEIGHT)
         for (x = 0; x < DEBUG_BMP_WIDTH; x++)
             bmp_buffer[y * DEBUG_BMP_WIDTH + x] = 17;

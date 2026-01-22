@@ -829,7 +829,7 @@ void FUNC_FindBreakable(cBot* pBot)
         return; // Ensure pBot and its edict are not null
     }
 
-    edict_t* pEntity = pBot->pEdict;
+    const edict_t* pEntity = pBot->pEdict;
     edict_t* pent = nullptr;
 
     // Search for entities within a 256-unit radius around the bot
@@ -862,7 +862,17 @@ void FUNC_AttackBreakable(cBot* pBot)
         return;
     }
 
-    const Vector vBreakableOrigin = VecBModelOrigin(pBreakable);
+    Vector vBreakableOrigin = VecBModelOrigin(pBreakable);
+
+    // Adjust aim point to be lower - aim at center-bottom instead of exact center
+	// This helps with hitting windows, doors, and other breakables more reliably - [APG]RoboCop[CL]
+    const Vector mins = pBreakable->v.mins;
+    const Vector maxs = pBreakable->v.maxs;
+    const float height = maxs.z - mins.z;
+
+    // Aim at 1/3 height from bottom (lower than center)
+    vBreakableOrigin.z = pBreakable->v.absmin.z + (height * 0.33f);
+
     pBot->setHeadAiming(vBreakableOrigin);
 
     const float distance = (pBot->pEdict->v.origin - vBreakableOrigin).Length();
@@ -879,7 +889,13 @@ void FUNC_AttackBreakable(cBot* pBot)
         if (pBot->isHoldingWeapon(CS_WEAPON_KNIFE)) {
             pBot->PickBestWeapon();
         }
-        pBot->FireWeapon();
+
+        // Don't spam shots - add a small delay between attacks
+        static float lastAttackTime = 0.0f;
+        if (gpGlobals->time - lastAttackTime > 0.15f) {  // ~6-7 shots per second max
+            pBot->FireWeapon();
+            lastAttackTime = gpGlobals->time;
+        }
     }
 }
 
