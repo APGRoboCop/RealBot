@@ -854,7 +854,7 @@ void FUNC_AttackBreakable(cBot* pBot)
         return;
     }
 
-    edict_t* pBreakable = pBot->pBreakableEdict;
+    const edict_t* pBreakable = pBot->pBreakableEdict;
 
     // If the breakable is no longer valid, forget it
     if (pBreakable->v.health <= 0 || (pBreakable->v.flags & FL_DORMANT)) {
@@ -862,20 +862,40 @@ void FUNC_AttackBreakable(cBot* pBot)
         return;
     }
 
-    Vector vBreakableOrigin = VecBModelOrigin(pBreakable);
-
-    // Adjust aim point to be lower - aim at center-bottom instead of exact center
-	// This helps with hitting windows, doors, and other breakables more reliably - [APG]RoboCop[CL]
-    const Vector mins = pBreakable->v.mins;
-    const Vector maxs = pBreakable->v.maxs;
-    const float height = maxs.z - mins.z;
-
-    // Aim at 1/3 height from bottom (lower than center)
-    vBreakableOrigin.z = pBreakable->v.absmin.z + (height * 0.33f);
-
-    pBot->setHeadAiming(vBreakableOrigin);
+    // Get the true center of the brush model using absmin/absmax (more reliable for bmodels)
+    Vector vBreakableOrigin = (pBreakable->v.absmin + pBreakable->v.absmax) * 0.5f;
 
     const float distance = (pBot->pEdict->v.origin - vBreakableOrigin).Length();
+
+    // Only attack if reasonably close - prevents shooting distant decorative breakables
+    if (distance > 200.0f) {
+        pBot->pBreakableEdict = nullptr;
+        return;
+    }
+
+    // Check if this breakable is actually blocking our path (trace forward from bot)
+    TraceResult tr;
+    UTIL_MakeVectors(pBot->pEdict->v.v_angle);
+    const Vector v_forward = gpGlobals->v_forward;
+
+    const Vector traceStart = pBot->pEdict->v.origin + pBot->pEdict->v.view_ofs;
+    const Vector traceEnd = traceStart + v_forward * 128.0f;
+
+    UTIL_TraceLine(traceStart, traceEnd, dont_ignore_monsters, pBot->pEdict->v.pContainingEntity, &tr);
+
+    // Only attack if the breakable is actually in our way
+    if (tr.pHit != pBreakable && tr.flFraction >= 1.0f) {
+        // Breakable is not blocking our path - forget it
+        pBot->pBreakableEdict = nullptr;
+        return;
+    }
+
+    // Use the trace hit point for more accurate aiming when available
+    if (tr.pHit == pBreakable) {
+        vBreakableOrigin = tr.vecEndPos;
+    }
+
+    pBot->setHeadAiming(vBreakableOrigin);
 
     // Use knife if close enough, otherwise use the current weapon
     if (distance < 64.0f) {
@@ -890,16 +910,16 @@ void FUNC_AttackBreakable(cBot* pBot)
             pBot->PickBestWeapon();
         }
 
-        // Don't spam shots - add a small delay between attacks
-        static float lastAttackTime = 0.0f;
-        if (gpGlobals->time - lastAttackTime > 0.15f) {  // ~6-7 shots per second max
+        // Per-bot attack timer (assuming f_breakable_attack_time exists in cBot)
+        // If not, you'll need to add: float f_breakable_attack_time = 0.0f; to bot.h
+        if (pBot->f_breakable_attack_time < gpGlobals->time) {
             pBot->FireWeapon();
-            lastAttackTime = gpGlobals->time;
+            pBot->f_breakable_attack_time = gpGlobals->time + 0.2f;
         }
     }
 }
 
-void FUNC_CheckForBombPlanted(edict_t* pEntity) //Experimental [APG]RoboCop[CL]
+void FUNC_CheckForBombPlanted(edict_t* pEntity) //TODO: Experimental [APG]RoboCop[CL]
 {
     // Check if the bot has a bomb planted.
     // If so, then we need to go to the bomb site.

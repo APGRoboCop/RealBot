@@ -213,6 +213,7 @@ public:
 
     float f_use_timer;           // time for use button (hostage rescue, preventing to fast using)
     float fBlindedTime;          // How long it is blinded ( when > globals->time)
+    float f_breakable_attack_time; // Timer for breakable attack delay
 
     float f_max_speed;           // Max speed is the max speed it can get when holding that particular weapon
     float f_move_speed;          // The bots move speed
