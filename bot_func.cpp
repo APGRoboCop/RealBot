@@ -502,11 +502,14 @@ bool BotShouldDuck(cBot* pBot) {
     return BotCanDuckUnder(pBot);
 }
 
-bool BotShouldDuckJump(cBot* pBot) //Experimental DuckJump Incomplete [APG]RoboCop[CL]
+bool BotShouldDuckJump(cBot* pBot)
 {
-    // This is crucial for bots to sneak inside vents and tight areas in order
-    // to inflitrate and prooceed on ahead. DuckJump is required for vaulting
-    // on top of crates, window ledges and edges as an important method.
+    // Duck-jumping is crucial for vaulting onto crates, window ledges, vents, etc.
+    // Examples: cs_italy, de_nuke, de_inferno
+    // A duck-jump allows reaching heights between MAX_JUMPHEIGHT and ~54 units
+
+    if (pBot == nullptr || pBot->pEdict == nullptr)
+        return false;
 
     if (pBot->isDefusing()) {
         pBot->rprint_trace("BotShouldDuckJump", "Returning false because defusing.");
@@ -514,13 +517,229 @@ bool BotShouldDuckJump(cBot* pBot) //Experimental DuckJump Incomplete [APG]RoboC
     }
 
     if (pBot->iDuckJumpTries > 5) {
-        // tried to duck 5 times, so no longer!
-        pBot->rprint_trace("BotShouldDuck", "Returning false because ducked too many times.");
+        pBot->rprint_trace("BotShouldDuckJump", "Returning false because duck-jumped too many times.");
         return false;
     }
 
     if (pBot->isDuckJumping())
-        return false; // already duckjumping
+        return false; // already duck-jumping
+
+    if (pBot->isJumping())
+        return false; // already jumping, let that complete first
+
+    TraceResult tr;
+    edict_t* pEdict = pBot->pEdict;
+
+    // Get the bot's forward direction (ignore pitch/roll)
+    Vector v_angles = pEdict->v.v_angle;
+    v_angles.x = 0;
+    v_angles.z = 0;
+    UTIL_MakeVectors(v_angles);
+
+    const Vector v_forward = gpGlobals->v_forward;
+    const Vector v_origin = pEdict->v.origin;
+
+    // Duck-jump constants
+    constexpr float DUCKJUMP_HEIGHT = 54.0f;      // Max height reachable with duck-jump
+    constexpr float NORMAL_JUMP_HEIGHT = 45.0f;   // Normal jump height
+    constexpr float CHECK_DISTANCE = 48.0f;       // How far ahead to check
+    constexpr float CROUCH_HEIGHT = 36.0f;        // Height of crouched player
+
+    // ============================================================
+    // CHECK 1: Is there an obstacle at knee/waist level ahead?
+    // ============================================================
+    Vector v_source = v_origin + Vector(0, 0, -10); // knee level
+    Vector v_dest = v_source + v_forward * CHECK_DISTANCE;
+
+    UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, point_hull,
+        pEdict->v.pContainingEntity, &tr);
+
+    if (tr.flFraction >= 1.0f) {
+        // No obstacle at knee level, no need for duck-jump
+        return false;
+    }
+
+    pBot->rprint_trace("BotShouldDuckJump", "Obstacle detected at knee level");
+
+    // ============================================================
+    // CHECK 2: Can a normal jump clear it? If yes, don't duck-jump
+    // ============================================================
+    v_source = v_origin + Vector(0, 0, NORMAL_JUMP_HEIGHT);
+    v_dest = v_source + v_forward * CHECK_DISTANCE;
+
+    UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, point_hull,
+        pEdict->v.pContainingEntity, &tr);
+
+    if (tr.flFraction >= 1.0f) {
+        // Normal jump can clear it, don't need duck-jump
+        pBot->rprint_trace("BotShouldDuckJump", "Normal jump can clear obstacle");
+        return false;
+    }
+
+    // ============================================================
+    // CHECK 3: Is there clearance at duck-jump height?
+    // ============================================================
+    v_source = v_origin + Vector(0, 0, DUCKJUMP_HEIGHT);
+    v_dest = v_source + v_forward * CHECK_DISTANCE;
+
+    UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, point_hull,
+        pEdict->v.pContainingEntity, &tr);
+
+    if (tr.flFraction < 1.0f) {
+        // Something blocks at duck-jump height too
+        pBot->rprint_trace("BotShouldDuckJump", "No clearance at duck-jump height");
+        return false;
+    }
+
+    pBot->rprint_trace("BotShouldDuckJump", "Clearance exists at duck-jump height");
+
+    // ============================================================
+    // CHECK 4: Is there headroom above for the crouch? (vent check)
+    // ============================================================
+    v_source = v_origin + Vector(0, 0, DUCKJUMP_HEIGHT + CROUCH_HEIGHT);
+    v_dest = v_source + v_forward * (CHECK_DISTANCE / 2);
+
+    UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, head_hull,
+        pEdict->v.pContainingEntity, &tr);
+
+    // For vents: we actually WANT a ceiling, so don't fail this check
+    // Just note if we're entering a vent-like space
+    const bool enteringVent = (tr.flFraction < 1.0f);
+    if (enteringVent) {
+        pBot->rprint_trace("BotShouldDuckJump", "Possibly entering vent/tight space");
+    }
+
+    // ============================================================
+    // CHECK 5: Verify there's a surface to land on
+    // ============================================================
+    v_source = v_origin + v_forward * CHECK_DISTANCE + Vector(0, 0, DUCKJUMP_HEIGHT);
+    v_dest = v_source - Vector(0, 0, DUCKJUMP_HEIGHT + 18.0f);
+
+    UTIL_TraceLine(v_source, v_dest, ignore_monsters,
+        pEdict->v.pContainingEntity, &tr);
+
+    if (tr.flFraction >= 1.0f) {
+        // No landing surface - but could still be valid for entering vents
+        if (!enteringVent) {
+            pBot->rprint_trace("BotShouldDuckJump", "No landing surface detected");
+            return false;
+        }
+    }
+
+    // ============================================================
+    // CHECK 6: Make sure obstacle is within duck-jump range
+    // ============================================================
+    // Trace down from where we'd land to see obstacle height
+    v_source = v_origin + v_forward * 24.0f + Vector(0, 0, DUCKJUMP_HEIGHT);
+    v_dest = v_source - Vector(0, 0, DUCKJUMP_HEIGHT + 36.0f);
+
+    UTIL_TraceLine(v_source, v_dest, ignore_monsters,
+        pEdict->v.pContainingEntity, &tr);
+
+    if (tr.flFraction < 1.0f) {
+        const float obstacleHeight = (1.0f - tr.flFraction) * (DUCKJUMP_HEIGHT + 36.0f);
+
+        char msg[255];
+        snprintf(msg, sizeof(msg), "Obstacle height: %.1f units", obstacleHeight);
+        pBot->rprint_trace("BotShouldDuckJump", msg);
+
+        // Only duck-jump for obstacles between normal jump and duck-jump height
+        if (obstacleHeight > NORMAL_JUMP_HEIGHT && obstacleHeight <= DUCKJUMP_HEIGHT + 10.0f) {
+            pBot->rprint_trace("BotShouldDuckJump", "Duck-jump conditions met!");
+            return true;
+        }
+    }
+
+    // For vent entries, still allow duck-jump
+    if (enteringVent) {
+        pBot->rprint_trace("BotShouldDuckJump", "Duck-jump for vent entry!");
+        return true;
+    }
+
+    pBot->rprint_trace("BotShouldDuckJump", "Duck-jump not needed");
+    return false;
+}
+
+/**
+ * Attempts various unstuck methods in escalating order.
+ * Returns true if an unstuck action was taken.
+ * @param pBot
+ * @param totalAttempts - how many times we've tried to unstuck overall
+ * @return
+ */
+bool BotTryUnstuck(cBot* pBot, int totalAttempts) {
+    if (pBot == nullptr || pBot->pEdict == nullptr)
+        return false;
+
+    if (pBot->isDefusing())
+        return false;
+
+    char msg[255];
+    snprintf(msg, sizeof(msg), "Attempting unstuck, attempt #%d", totalAttempts);
+    pBot->rprint_trace("BotTryUnstuck", msg);
+
+    // Level 1: Try jumping (attempts 1-3)
+    if (totalAttempts <= 3 && pBot->iJumpTries < 5) {
+        if (BotShouldJumpIfStuck(pBot)) {
+            pBot->doJump();
+            pBot->iJumpTries++;
+            pBot->rprint_trace("BotTryUnstuck", "Trying jump");
+            return true;
+        }
+    }
+
+    // Level 2: Try ducking (attempts 2-4)
+    if (totalAttempts >= 2 && totalAttempts <= 4 && pBot->iDuckTries < 3) {
+        if (BotShouldDuck(pBot)) {
+            pBot->doDuck();
+            pBot->iDuckTries++;
+            pBot->rprint_trace("BotTryUnstuck", "Trying duck");
+            return true;
+        }
+    }
+
+    // Level 3: Try duck-jump (attempts 3-5)
+    if (totalAttempts >= 3 && totalAttempts <= 5 && pBot->iDuckJumpTries < 5) {
+        if (BotShouldDuckJump(pBot)) {
+            pBot->doDuckJump();
+            pBot->iDuckJumpTries++;
+            pBot->rprint_trace("BotTryUnstuck", "Trying duck-jump");
+            return true;
+        }
+    }
+
+    // Level 4: Random strafe (attempts 4-6)
+    if (totalAttempts >= 4 && totalAttempts <= 6) {
+        const float strafeTime = 0.3f + RANDOM_FLOAT(0.0f, 0.3f);
+        if (RANDOM_LONG(0, 1) == 0) {
+            pBot->strafeLeft(strafeTime);
+            pBot->rprint_trace("BotTryUnstuck", "Random strafe left");
+        }
+        else {
+            pBot->strafeRight(strafeTime);
+            pBot->rprint_trace("BotTryUnstuck", "Random strafe right");
+        }
+        return true;
+    }
+
+    // Level 5: Move backwards (attempts 5-7)
+    if (totalAttempts >= 5 && totalAttempts <= 7) {
+        pBot->setMoveSpeed(-pBot->f_max_speed);
+        pBot->f_goback_time = gpGlobals->time + 0.5f;
+        pBot->rprint_trace("BotTryUnstuck", "Moving backwards");
+        return true;
+    }
+
+    // Level 6: Go back to previous path node (attempts 7+)
+    if (totalAttempts >= 7) {
+        pBot->rprint_trace("BotTryUnstuck", "All unstuck methods exhausted, going back in path");
+        pBot->prevPathIndex();
+        // Reset tries for next attempt
+        pBot->iJumpTries = 0;
+        pBot->iDuckTries = 0;
+        pBot->iDuckJumpTries = 0;
+        return true;
+    }
 
     return false;
 }
@@ -999,7 +1218,6 @@ void TryToGetHostageTargetToFollowMe(cBot* pBot) {
 
     // still NULL
     if (pHostage == nullptr) {
-        // Note: this means a hostage that is near and visible and rescueable etc.
         return; // nothing to do yet
     }
 
@@ -1014,42 +1232,48 @@ void TryToGetHostageTargetToFollowMe(cBot* pBot) {
     pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "Remembering hostage (target) to rescue");
     pBot->rememberWhichHostageToRescue(pHostage);
 
-    // Prevent bots getting to close here
     const float distanceToHostage = func_distance(pBot->pEdict->v.origin, pHostage->v.origin);
 
     // From here, we should get the hostage when still visible
     if (pBot->canSeeEntity(pHostage)) {
         pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "I can see the hostage to rescue!");
-        // set body to hostage!
         pBot->vBody = pBot->vHead = pHostage->v.origin + Vector(0, 0, 36);
-        // by default run
-        pBot->setMoveSpeed(pBot->f_max_speed);
 
         if (distanceToHostage <= 80) {
             pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "I can see hostage AND really close!");
             pBot->setMoveSpeed(0.0f); // too close, do not move
 
-            // only use hostage when facing
             const int angle_to_hostage = FUNC_InFieldOfView(pBot->pEdict, (pBot->vBody - pBot->pEdict->v.origin));
 
-            if (angle_to_hostage <= 30
-                && (pBot->f_use_timer < gpGlobals->time)) {
-                pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "I can see hostage AND really REALLY close AND facing!");
-                // within FOV and we assume we can now press the USE key. In order to make sure we press it once
-                // and not multiple times we set the timer.
+            if (angle_to_hostage <= 30 && (pBot->f_use_timer < gpGlobals->time)) {
+                pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "Pressing USE on hostage");
                 pBot->f_use_timer = gpGlobals->time + 0.7f;
-
                 UTIL_BotPressKey(pBot, IN_USE);
 
-                // assuming it worked, remember bot is rescueing this hostage
+                // Remember hostage is following and clear target
                 pBot->rememberHostageIsFollowingMe(pHostage);
                 pBot->clearHostageToRescueTarget();
-                pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "I pressed USE and assume i have used the hostage");
+                pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "Used hostage, now it should follow me");
                 pBot->f_wait_time = gpGlobals->time + 0.5f;
+
+                // IMPORTANT: Move away from hostage after using it!
+                pBot->setMoveSpeed(pBot->f_max_speed);
             }
+        }
+        else if (distanceToHostage <= 150) {
+            // Approach slowly when close
+            pBot->setMoveSpeed(pBot->f_max_speed / 2);
+        }
+        else {
+            // Run towards hostage
+            pBot->setMoveSpeed(pBot->f_max_speed);
         }
 
         pBot->forgetGoal();
+    }
+    else {
+        // Can't see the hostage anymore - need to path to it
+        pBot->rprint_trace("TryToGetHostageTargetToFollowMe", "I have a hostage target but can't see it");
     }
 }
 
@@ -1121,6 +1345,11 @@ bool isHostageRescueable(cBot* pBot, edict_t* pHostage) {
         return false;
     }
 
+    // Terrorists cannot rescue hostages
+    if (pBot->isTerrorist()) {
+        return false;
+    }
+
     // A hostage is not rescueable if it has already been rescued, is dead,
     // is already being moved by a human player, or is being rescued by another bot.
     if (isHostageRescued(pBot, pHostage) ||
@@ -1131,7 +1360,6 @@ bool isHostageRescueable(cBot* pBot, edict_t* pHostage) {
         return false;
     }
 
-    // If all checks pass, the hostage is rescueable
     return true;
 }
 
@@ -1193,6 +1421,6 @@ void rblog(const char* txt) {
         std::fprintf(fpRblog, "%s", txt);        // print the text into the file
 
         // this way we make sure we have all latest info - even with crashes
-        fflush(fpRblog);
+        std::fflush(fpRblog);
     }
 }

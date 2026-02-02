@@ -152,6 +152,8 @@ public:
     void path_think(cBot *pBot, float distanceMoved);  // think about paths
     void path_clear(int botIndex);
 
+    bool requiresDuckJump(const Vector& vFrom, const Vector& vTo, edict_t* pEdict) const;
+
     void ExecuteNearNodeLogic(cBot *pBot);
 
     int getNodeIndexFromBotForPath(int botIndex, int pathNodeIndex) const;

@@ -211,6 +211,7 @@ void cBot::SpawnInit() {
 	iTeam = -1;
 	bot_class = -1;
 	i_camp_style = 0;
+	iUnstuckAttempts = 0;
 	iPrimaryWeapon = -1;
 	iSecondaryWeapon = -1;
 	zoomed = ZOOM_NONE;
@@ -4445,22 +4446,27 @@ float cBot::DetermineStrafe(const bool bHitForwardLeft, const bool bHitForwardRi
 //
 void cBot::doDuckJump(const Vector& vector) {
 	rprint_trace("doDuckJump", "With vector");
-	// stay focussed with body and head to this vector
 	this->vHead = vector;
 	this->vBody = vector;
-
 	doDuckJump();
 }
 
 void cBot::doDuckJump() {
-	rprint_trace("doDuckJump", "no vector");
-	UTIL_BotPressKey(this, IN_DUCK);
-	this->f_hold_duck = gpGlobals->time + 0.75f;
+	rprint_trace("doDuckJump", "Executing duck-jump");
 
+	// Duck-jump technique: Jump first, then immediately duck
+	// This raises the player's feet, allowing them to clear higher obstacles
+
+	// Press jump
 	UTIL_BotPressKey(this, IN_JUMP);
-	this->f_jump_time = gpGlobals->time + 0.75f;
+	this->f_jump_time = gpGlobals->time + 0.5f;
 
-	this->increaseTimeToMoveToNode(0.75f);
+	// Press duck slightly after jump starts (the key timing trick)
+	UTIL_BotPressKey(this, IN_DUCK);
+	this->f_hold_duck = gpGlobals->time + 0.6f; // Hold duck slightly longer than jump
+
+	// Give more time to reach the node when duck-jumping
+	this->increaseTimeToMoveToNode(1.0f);
 }
 
 // Bots require both the combination of the (IN_DUCK) and (IN_JUMP) key to be pressed

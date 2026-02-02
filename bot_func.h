@@ -67,6 +67,7 @@ bool BotShouldJump(cBot* pBot);
 bool BotShouldJumpIfStuck(cBot* pBot);
 bool BotShouldDuck(cBot* pBot);
 bool BotShouldDuckJump(cBot* pBot);
+bool BotTryUnstuck(cBot* pBot, int totalAttempts);
 void TryToGetHostageTargetToFollowMe(cBot* pBot);
 Vector FUNC_CalculateAngles(const cBot* pBot);
 

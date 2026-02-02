@@ -308,7 +308,8 @@ public:
     // Remember stuck stuff
     int iJumpTries;
     int iDuckTries;
-    int iDuckJumpTries;  // Experimental DuckJump added for this new node [APG]RoboCop[CL]
+    int iDuckJumpTries;
+    int iUnstuckAttempts;    // Total unstuck attempts for escalation
 
     // ------------------------
     // BOOLEANS

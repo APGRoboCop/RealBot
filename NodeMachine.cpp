@@ -1218,6 +1218,14 @@ int cNodeMachine::addNode(const Vector& vOrigin, edict_t *pEntity) {
             // Add this to the neighbouring list
             Nodes[currentIndex].iNeighbour[neighbourId] = nodeIndex;
 
+            // Check if this connection requires duck-jumping
+            if (requiresDuckJump(Nodes[currentIndex].origin, Nodes[nodeIndex].origin, pEntity)) {
+                Nodes[currentIndex].iNodeBits |= BIT_DUCKJUMP;
+                char msg[128];
+                snprintf(msg, sizeof(msg), "Node %d marked as BIT_DUCKJUMP (connection to %d)\n", currentIndex, nodeIndex);
+                rblog(msg);
+            }
+
             // Do a reverse check
             bool bCanConnect = true;
             // TODO: Stefan 30/08/2019 - this can be refactored into a function "canConnect" or something!?
@@ -2928,6 +2936,33 @@ void cNodeMachine::path_walk(cBot *pBot, const float distanceMoved) {
         // hit by a hostage?, hostage is blocking our path
         if (isEntityHostage(pEntityHit)) {
             pBot->rprint_trace("cNodeMachine::path_walk", "Entity between me and next node is a hostage.");
+
+            // Terrorists should never interact with hostages - strafe around
+            if (pBot->isTerrorist()) {
+                pBot->rprint_trace("cNodeMachine::path_walk", "I'm a terrorist, strafing around hostage");
+                if (RANDOM_LONG(0, 1) == 0) {
+                    pBot->strafeLeft(0.3f);
+                }
+                else {
+                    pBot->strafeRight(0.3f);
+                }
+                return;
+            }
+
+            // CT: Check if this is our target hostage
+            if (pBot->getHostageToRescue() == pEntityHit || pBot->isUsingHostage(pEntityHit)) {
+                pBot->rprint_trace("cNodeMachine::path_walk", "This is my hostage, letting rescue logic handle it");
+                return; // Let TryToGetHostageTargetToFollowMe handle this
+            }
+
+            // Not our target hostage, strafe around it
+            pBot->rprint_trace("cNodeMachine::path_walk", "Not my hostage target, strafing around");
+            if (RANDOM_LONG(0, 1) == 0) {
+                pBot->strafeLeft(0.3f);
+            }
+            else {
+                pBot->strafeRight(0.3f);
+            }
             return;
         }
 
@@ -2994,6 +3029,42 @@ void cNodeMachine::path_walk(cBot *pBot, const float distanceMoved) {
     pBot->rprint_trace("cNodeMachine::path_walk", "Finished - really the end of the method");
 }
 
+// Add this helper function for detecting duck-jump requirement during node creation
+bool cNodeMachine::requiresDuckJump(const Vector& vFrom, const Vector& vTo, edict_t* pEdict) const
+{
+    if (pEdict == nullptr) return false;
+
+    const float heightDiff = vTo.z - vFrom.z;
+
+    // Only check for obstacles between 45 and 54 units high
+    // Cast MAX_JUMPHEIGHT to float to avoid enum comparison warning
+    if (heightDiff <= static_cast<float>(MAX_JUMPHEIGHT) || heightDiff > 54.0f) {
+        return false;
+    }
+
+    TraceResult tr;
+
+    // Check if there's an obstacle requiring duck-jump
+    Vector v_source = vFrom + Vector(0, 0, MAX_JUMPHEIGHT);
+    const Vector v_dest = vTo;
+
+    UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, point_hull,
+        pEdict->v.pContainingEntity, &tr);
+
+    if (tr.flFraction < 1.0f) {
+        // Blocked at normal jump height, check duck-jump height
+        v_source = vFrom + Vector(0, 0, 54.0f);
+        UTIL_TraceHull(v_source, v_dest, dont_ignore_monsters, point_hull,
+            pEdict->v.pContainingEntity, &tr);
+
+        if (tr.flFraction >= 1.0f) {
+            return true; // Duck-jump can clear it
+        }
+    }
+
+    return false;
+}
+
 void cNodeMachine::ExecuteIsStuckLogic(cBot *pBot, const int currentNodeToHeadFor, const Vector& vector) {
     pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "START");
     pBot->fNotStuckTime = gpGlobals->time + 0.25f; // give some time to unstuck
@@ -3003,30 +3074,13 @@ void cNodeMachine::ExecuteIsStuckLogic(cBot *pBot, const int currentNodeToHeadFo
 
     // JUMP & DUCK // TODO: Add a proper and reliable DuckJump Node [APG]RoboCop[CL]
     const tNode &currentNode = Nodes[currentNodeToHeadFor];
-    if (BotShouldJumpIfStuck(pBot) || currentNode.iNodeBits & BIT_JUMP) {
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Jump tries increased, increase node time - START");
-        pBot->doJump(vector);
-        pBot->iJumpTries++;
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Jump tries increased, increase node time  - END");
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Finished!");
+    
+    pBot->iUnstuckAttempts++;
+    if (BotTryUnstuck(pBot, pBot->iUnstuckAttempts)) {
+        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Unstuck action taken");
         return;
     }
-    if (BotShouldDuck(pBot) || currentNode.iNodeBits & BIT_DUCK) {
-	    pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Duck tries increased, increase node time - START");
-	    pBot->doDuck();
-	    pBot->iDuckTries++;
-	    pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Duck tries increased, increase node time - END");
-	    pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Finished!");
-	    return;
-    }
-    if (BotShouldDuckJump(pBot) || currentNode.iNodeBits & BIT_DUCKJUMP) {
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "DuckJump tries increased, increase node time - START");
-        pBot->doDuckJump();
-        pBot->iDuckJumpTries++;
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "DuckJump tries increased, increase node time  - END");
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Finished!");
-        return;
-    }
+
     if (pBot->isOnLadder()) {
 	    pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Is stuck on ladder, trying to get of the ladder by jumping");
 	    pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "DuckJump tries increased");
@@ -3084,17 +3138,45 @@ void cNodeMachine::ExecuteIsStuckLogic(cBot *pBot, const int currentNodeToHeadFo
 
     if (hostageNearbyInFOV) {
         pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "A hostage is in front of me.");
+
+        // Terrorists should never interact with hostages - just go around them
+        if (pBot->isTerrorist()) {
+            pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "I'm a terrorist, strafing around hostage");
+            if (RANDOM_LONG(0, 1) == 0) {
+                pBot->strafeLeft(0.5f);
+            }
+            else {
+                pBot->strafeRight(0.5f);
+            }
+
+            return;
+        }
+
+        // CT logic: only pause if this is our target hostage
         if (pBot->getHostageToRescue() == hostageNearbyInFOV) {
-            pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "The hostage I want to rescue is blocking me, so ignore");
+            pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "The hostage I want to rescue is blocking me, letting rescue logic handle it");
+            
+        	return; // Let TryToGetHostageTargetToFollowMe handle this
         }
+
         if (pBot->isUsingHostage(hostageNearbyInFOV)) {
-            pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "This is a hostage that is (should be) following me, so ignore");
+            pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "This hostage is following me, strafing to let it catch up");
+            
+        	// Strafe to give the hostage room to follow
+            pBot->strafeRight(0.3f);
+            
+        	return;
         }
-        // Depending on how the other bot looks, act
-        // pBotStuck -> faces pBot , do same
-        // pBotStuck -> cannot see pBot, do opposite
-        // Check if pBotStuck can see pBot (pBot can see pBotStuck!)
-        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "hostageNearbyInFOV - finished");
+
+        // Not our hostage - strafe around it
+        pBot->rprint_trace("cNodeMachine::ExecuteIsStuckLogic", "Not my hostage, strafing around");
+        if (RANDOM_LONG(0, 1) == 0) {
+            pBot->strafeLeft(0.4f);
+        }
+        else {
+            pBot->strafeRight(0.4f);
+        }
+
         return;
     }
 
