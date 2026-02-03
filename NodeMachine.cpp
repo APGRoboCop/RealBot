@@ -2472,56 +2472,86 @@ bool cNodeMachine::isInvalidNode(const int index) //TODO: Experimental [APG]Robo
 void cNodeMachine::buildPath(const int nodeStartIndex, const int nodeTargetIndex, const int botIndex, cBot* pBot)
 {
     if (!isValidNodeIndex(nodeStartIndex) || !isValidNodeIndex(nodeTargetIndex)) {
-        rblog("Invalid node index provided to buildPath");
+        rblog("Invalid node index provided to buildPath\n");
+        return;
+    }
+
+    if (botIndex < 0 || botIndex >= MAX_BOTS) {
+        rblog("Invalid bot index provided to buildPath\n");
         return;
     }
 
     // Clear the current path for the bot
     path_clear(botIndex);
 
-    // Initialize the A* algorithm
-    std::priority_queue<tNodestar> openList;
-    std::unordered_map<int, tNodestar> closedList;
+    // Use a vector of pairs: (cost, nodeIndex) for the priority queue
+    // std::greater makes it a min-heap (lowest cost first)
+    std::priority_queue<std::pair<float, int>,
+        std::vector<std::pair<float, int>>,
+        std::greater<>> openList;
 
-    constexpr tNodestar startNode = { OPEN, -1, 0.0f, 0.0 };
-    openList.push(startNode);
+    std::unordered_map<int, int> cameFrom;      // node -> parent
+    std::unordered_map<int, float> costSoFar;   // node -> g-cost
+
+    openList.emplace(0.0f, nodeStartIndex);
+    cameFrom[nodeStartIndex] = -1;
+    costSoFar[nodeStartIndex] = 0.0f;
+
+    bool pathFound = false;
 
     while (!openList.empty()) {
-        tNodestar currentNode = openList.top();
+        int currentNode = openList.top().second;
         openList.pop();
 
-        if (currentNode.state == CLOSED) {
-            continue;
+        if (currentNode == nodeTargetIndex) {
+            pathFound = true;
+            break;
         }
 
-        if (currentNode.parent == nodeTargetIndex) {
-            // Path found, reconstruct the path
-            int pathIndex = 0;
-            while (currentNode.parent != -1) {
-                iPath[botIndex][pathIndex++] = currentNode.parent;
-                currentNode = closedList[currentNode.parent];
-            }
-            std::reverse(iPath[botIndex], iPath[botIndex] + pathIndex);
-            return;
-        }
-
-        currentNode.state = CLOSED;
-        closedList[currentNode.parent] = currentNode;
-
-        // Open neighbor nodes
-        for (int neighborIndex : Nodes[currentNode.parent].iNeighbour)
-        {
-            if (neighborIndex == -1 || closedList.find(neighborIndex) != closedList.end()) {
+        for (int neighborIndex : Nodes[currentNode].iNeighbour) {
+            if (neighborIndex < 0 || !isValidNodeIndex(neighborIndex)) {
                 continue;
             }
 
-            const float cost = currentNode.cost + (node_vector(currentNode.parent) - node_vector(neighborIndex)).Length();
-            tNodestar neighborNode = { OPEN, currentNode.parent, cost, 0.0 };
-            openList.push(neighborNode);
+            const float newCost = costSoFar[currentNode] +
+                func_distance(Nodes[currentNode].origin, Nodes[neighborIndex].origin);
+
+            if (costSoFar.find(neighborIndex) == costSoFar.end() ||
+                newCost < costSoFar[neighborIndex]) {
+
+                costSoFar[neighborIndex] = newCost;
+                // A* heuristic: estimated distance to goal
+                float priority = newCost +
+                    func_distance(Nodes[neighborIndex].origin, Nodes[nodeTargetIndex].origin);
+                openList.emplace(priority, neighborIndex);
+                cameFrom[neighborIndex] = currentNode;
+            }
         }
     }
 
-    rblog("Failed to build path");
+    if (!pathFound) {
+        rblog("Failed to build path\n");
+        return;
+    }
+
+    // Reconstruct path in reverse
+    std::vector<int> tempPath;
+    int current = nodeTargetIndex;
+    while (current != -1) {
+        tempPath.push_back(current);
+        current = cameFrom[current];
+    }
+
+    // Copy to iPath in correct order (start to end)
+    std::reverse(tempPath.begin(), tempPath.end());
+    for (size_t i = 0; i < tempPath.size() && i < MAX_PATH_NODES; ++i) {
+        iPath[botIndex][i] = tempPath[i];
+    }
+
+    if (pBot != nullptr) {
+        pBot->beginWalkingPath();
+        pBot->setTimeToMoveToNode(2);
+    }
 }
 
 // Find a node which has almost no danger!
@@ -4134,7 +4164,7 @@ void cNodeMachine::dump_path(const int iBot, const int CurrentPath) const
 
     bool path_exists = false;
     for (int i = 0; i < MAX_PATH_NODES; ++i) {
-        int node_index = iPath[iBot][i];
+        const int node_index = iPath[iBot][i];
         if (node_index != -1) {
             path_exists = true;
             snprintf(buffer, 180, "%d ", node_index);
