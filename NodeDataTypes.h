@@ -65,6 +65,13 @@ enum : std::uint8_t
 	FILE_EXP_VER2 = 2
 };
 
+// Version 3.0 (sparse serialization - only used nodes/data are stored)
+enum : std::uint8_t
+{
+	FILE_NODE_VER3 = 3,
+	FILE_EXP_VER3 = 3
+};
+
 // Node bits (for navigational performance)
 enum : std::uint8_t
 {

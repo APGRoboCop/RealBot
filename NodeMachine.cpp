@@ -1497,7 +1497,7 @@ void cNodeMachine::draw(edict_t* pEntity) const
     CenterMessage(msg);
 }
 
-// Save Experience
+// Save Experience (V3: sparse InfoNodes - only used nodes stored)
 void cNodeMachine::experience_save() {
     char dirname[256];
     char filename[256];
@@ -1514,51 +1514,37 @@ void cNodeMachine::experience_save() {
     FILE* rbl = std::fopen(filename, "wb");
 
     if (rbl != nullptr) {
-        constexpr int iVersion = FILE_EXP_VER2;
+        constexpr int iVersion = FILE_EXP_VER3;
         std::fwrite(&iVersion, sizeof(int), 1, rbl);
 
-        // Write the InfoNodes data directly using the correct struct
-        for (tInfoNode& InfoNode : InfoNodes)
+        // Count used nodes
+        int usedCount = 0;
+        for (tNode& Node : Nodes)
         {
-            std::fwrite(&InfoNode, sizeof(tInfoNode), 1, rbl);
+            if (Node.origin != INVALID_VECTOR)
+                usedCount++;
+        }
+        std::fwrite(&usedCount, sizeof(int), 1, rbl);
+
+        // Write InfoNodes only for used nodes, with their index
+        for (int i = 0; i < MAX_NODES; i++) {
+            if (Nodes[i].origin != INVALID_VECTOR) {
+                std::fwrite(&i, sizeof(int), 1, rbl);
+                std::fwrite(&InfoNodes[i], sizeof(tInfoNode), 1, rbl);
+            }
         }
 
         iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
 
-        // Here write down the MAX amounts of nodes used from vis table!
-        const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
-
+        // Write iMaxUsedNodes and visibility table
         std::fwrite(&iMaxUsedNodes, sizeof(int), 1, rbl);
 
-        // Write down 512 bytes chunks, and when a remaining piece is left over
-        // also write that down. Only when 'size' is 0 we quit the loop
-        unsigned long iPos = 0;
-        unsigned long iChunk = 512;
-
-        // When we exceed the size we make sure that the chunk is not to big
-        if (iSize < iChunk)
-            iChunk = 512 - iSize;
-
-        unsigned long iRemaining = iSize - iChunk;        // unsigned caused SEGV while below -- BERKED
-
-        // While we still have bytes remaining to write to disk.
-        while (iRemaining > 0) {
-            std::fwrite(&cVisTable[iPos], iChunk, 1, rbl);
-
-            iChunk = 512;          // keep the size 512
-
-            // When we exceed the size we make sure that the chunk is not to big
-            if (iRemaining < iChunk)
-                iChunk = 512 - iRemaining;
-
-            iRemaining -= iChunk;
-            iPos += iChunk;        // increase position to read from cVisTable
-
-            if (iRemaining < 1)
-                break;              // escape
+        const unsigned long iSize = static_cast<unsigned long>(iMaxUsedNodes) * MAX_NODES / 8;
+        if (iSize > 0) {
+            std::fwrite(cVisTable.data(), iSize, 1, rbl);
         }
 
-        // write down the checked vis
+        // Write the vis checked array
         std::fwrite(iVisChecked, sizeof(iVisChecked), 1, rbl);
         std::fclose(rbl);
     } else
@@ -1595,7 +1581,7 @@ void cNodeMachine::experience_load() {
             // make sure we never exceed the limit
             iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
 
-            const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
+            const unsigned long iSize = static_cast<unsigned long>(iMaxUsedNodes) * MAX_NODES / 8;
 
             // Read table from what we know
             std::fread(cVisTable.data(), iSize, 1, rbl);
@@ -1610,7 +1596,7 @@ void cNodeMachine::experience_load() {
             // make sure we never exceed the limit
             iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
 
-            const unsigned long iSize = iMaxUsedNodes * MAX_NODES / 8;
+            const unsigned long iSize = static_cast<unsigned long>(iMaxUsedNodes) * MAX_NODES / 8;
 
             // Now read the cVisTable from what we know
             ClearVisibilityTable();        // clear first
@@ -1640,44 +1626,85 @@ void cNodeMachine::experience_load() {
 
             std::fread(iVisChecked, sizeof(iVisChecked), 1, rbl);
         }
+        // Version 3.0 (sparse InfoNodes, simplified vis table I/O)
+        else if (iVersion == FILE_EXP_VER3) {
+            int usedCount = 0;
+            std::fread(&usedCount, sizeof(int), 1, rbl);
+
+            // Read InfoNodes only for used nodes
+            for (int j = 0; j < usedCount; j++) {
+                int idx;
+                std::fread(&idx, sizeof(int), 1, rbl);
+                if (idx < 0 || idx >= MAX_NODES) {
+                    // skip the InfoNode data for this invalid index
+                    tInfoNode dummy;
+                    std::fread(&dummy, sizeof(tInfoNode), 1, rbl);
+                    continue;
+                }
+                std::fread(&InfoNodes[idx], sizeof(tInfoNode), 1, rbl);
+            }
+
+            std::fread(&iMaxUsedNodes, sizeof(int), 1, rbl);
+            iMaxUsedNodes = std::min(iMaxUsedNodes, MAX_NODES);
+
+            const unsigned long iSize = static_cast<unsigned long>(iMaxUsedNodes) * MAX_NODES / 8;
+
+            ClearVisibilityTable();
+            if (iSize > 0) {
+                std::fread(cVisTable.data(), iSize, 1, rbl);
+            }
+
+            std::fread(iVisChecked, sizeof(iVisChecked), 1, rbl);
+        }
 
         std::fclose(rbl);
     }
 }
 
-// Save
+// Save (V3: sparse format - only used nodes are written)
 void cNodeMachine::save() const
 {
-    char dirname[256];
-    char filename[256];
+	char dirname[256];
+	char filename[256];
 
-    // Set Directory name
-    std::strcpy(dirname, "data/cstrike/maps/");
-    std::strcat(dirname, STRING(gpGlobals->mapname));
-    std::strcat(dirname, ".rbn");     // nodes file
+	// Set Directory name
+	std::strcpy(dirname, "data/cstrike/maps/");
+	std::strcat(dirname, STRING(gpGlobals->mapname));
+	std::strcat(dirname, ".rbn");     // nodes file
 
-    // writes whole path into "filename", Linux compatible
-    UTIL_BuildFileNameRB(dirname, filename);
+	// writes whole path into "filename", Linux compatible
+	UTIL_BuildFileNameRB(dirname, filename);
 
-    // Only save if lock type is < 1
-    FILE* rbl = std::fopen(filename, "wb");
+	// Only save if lock type is < 1
+	FILE* rbl = std::fopen(filename, "wb");
 
-    if (rbl != nullptr) {
-        // Write down version number
-        constexpr int iVersion = FILE_NODE_VER1;
-        std::fwrite(&iVersion, sizeof(int), 1, rbl);
-        for (const tNode& Node : Nodes)
-        {
-            std::fwrite(&Node.origin, sizeof(Vector), 1, rbl);
-            for (const int& n : Node.iNeighbour)
-	            std::fwrite(&n, sizeof(int), 1, rbl);
+	if (rbl != nullptr) {
+		// Write down version number
+		constexpr int iVersion = FILE_NODE_VER3;
+		std::fwrite(&iVersion, sizeof(int), 1, rbl);
 
-            // save bit flags
-            std::fwrite(&Node.iNodeBits, sizeof(int), 1, rbl);
-        }
-        std::fclose(rbl);
-    } else
-        std::fprintf(stderr, "Cannot write file %s\n", filename);
+		// Count used nodes
+		int usedCount = 0;
+		for (const tNode& Node : Nodes)
+		{
+			if (Node.origin != INVALID_VECTOR)
+				usedCount++;
+		}
+		std::fwrite(&usedCount, sizeof(int), 1, rbl);
+
+		// Write only used nodes with their original index
+		for (int i = 0; i < MAX_NODES; i++) {
+			if (Nodes[i].origin != INVALID_VECTOR) {
+				std::fwrite(&i, sizeof(int), 1, rbl);
+				std::fwrite(&Nodes[i].origin, sizeof(Vector), 1, rbl);
+				for (const int& n : Nodes[i].iNeighbour)
+					std::fwrite(&n, sizeof(int), 1, rbl);
+				std::fwrite(&Nodes[i].iNodeBits, sizeof(int), 1, rbl);
+			}
+		}
+		std::fclose(rbl);
+	} else
+		std::fprintf(stderr, "Cannot write file %s\n", filename);
 }
 
 void cNodeMachine::save_important() const
@@ -1721,69 +1748,90 @@ void cNodeMachine::save_important() const
 
 // Load
 void cNodeMachine::load() {
-    char dirname[256];
-    char filename[256];
+	char dirname[256];
+	char filename[256];
 
-    // Set Directory name
-    std::strcpy(dirname, "data/cstrike/maps/");
+	// Set Directory name
+	std::strcpy(dirname, "data/cstrike/maps/");
 
-    std::strcat(dirname, STRING(gpGlobals->mapname));
-    std::strcat(dirname, ".rbn");     // nodes file
+	std::strcat(dirname, STRING(gpGlobals->mapname));
+	std::strcat(dirname, ".rbn");     // nodes file
 
-    // writes whole path into "filename", Linux compatible
-    UTIL_BuildFileNameRB(dirname, filename);
+	// writes whole path into "filename", Linux compatible
+	UTIL_BuildFileNameRB(dirname, filename);
 
-    FILE* rbl = std::fopen(filename, "rb");
+	FILE* rbl = std::fopen(filename, "rb");
 
-    if (rbl != nullptr) {
-	    int i;
-	    int iVersion = FILE_NODE_VER1;
-        std::fread(&iVersion, sizeof(int), 1, rbl);
+	if (rbl != nullptr) {
+		int i;
+		int iVersion = FILE_NODE_VER1;
+		std::fread(&iVersion, sizeof(int), 1, rbl);
 
-        // Version 1.0
-        if (iVersion == FILE_NODE_VER1) {
-            for (i = 0; i < MAX_NODES; i++) {
-                std::fread(&Nodes[i].origin, sizeof(Vector), 1, rbl);
-                for (int& n : Nodes[i].iNeighbour)
-                {
-                    std::fread(&n, sizeof(int), 1, rbl);
-                }
+		// Version 1.0 (legacy: all MAX_NODES slots stored)
+		if (iVersion == FILE_NODE_VER1) {
+			for (i = 0; i < MAX_NODES; i++) {
+				std::fread(&Nodes[i].origin, sizeof(Vector), 1, rbl);
+				for (int& n : Nodes[i].iNeighbour)
+				{
+					std::fread(&n, sizeof(int), 1, rbl);
+				}
 
-                // save bit flags
-                std::fread(&Nodes[i].iNodeBits, sizeof(int), 1, rbl);
+				// save bit flags
+				std::fread(&Nodes[i].iNodeBits, sizeof(int), 1, rbl);
 
-                if (Nodes[i].origin != Vector(9999, 9999, 9999))
-                    iMaxUsedNodes = i;
-            }
-        }
-        // Add nodes to meredians
-        for (i = 0; i < MAX_NODES; i++)
-            if (Nodes[i].origin != Vector(9999, 9999, 9999)) {
-                int iX, iY;
-                VectorToMeredian(Nodes[i].origin, &iX, &iY);
-                if (iX > -1 && iY > -1)
-                    AddToMeredian(iX, iY, i);
-            }
+				if (Nodes[i].origin != Vector(9999, 9999, 9999))
+					iMaxUsedNodes = i;
+			}
+		}
+		// Version 3.0 (sparse: only used nodes stored)
+		else if (iVersion == FILE_NODE_VER3) {
+			int usedCount = 0;
+			std::fread(&usedCount, sizeof(int), 1, rbl);
 
-        std::fclose(rbl);
+			for (int j = 0; j < usedCount; j++) {
+				int idx;
+				std::fread(&idx, sizeof(int), 1, rbl);
+				if (idx < 0 || idx >= MAX_NODES)
+					break;
 
-        // 04/07/04
-        // Check for full nodes table
+				std::fread(&Nodes[idx].origin, sizeof(Vector), 1, rbl);
+				for (int& n : Nodes[idx].iNeighbour)
+					std::fread(&n, sizeof(int), 1, rbl);
+				std::fread(&Nodes[idx].iNodeBits, sizeof(int), 1, rbl);
 
-        if (Nodes[MAX_NODES - 1].origin != Vector(9999, 9999, 9999))
-            rblog("!!! Nodes table is full\n");
+				if (Nodes[idx].origin != Vector(9999, 9999, 9999))
+					iMaxUsedNodes = idx;
+			}
+		}
 
-        char msg[80];
-        snprintf(msg, sizeof(msg), "After NodeMachine::load iMaxUsedNodes=%d\n",
-                iMaxUsedNodes);
-        rblog(msg);
-        SERVER_PRINT("Going to load IAD file : ");
-        INI_PARSE_IAD();
-    } else {
-        //    char msg[128];
-        //    sprintf(msg, "Notice: Could not open %s.\n");
-        //    SERVER_PRINT(msg);
-    }
+		// Add nodes to meredians
+		for (i = 0; i < MAX_NODES; i++)
+			if (Nodes[i].origin != Vector(9999, 9999, 9999)) {
+				int iX, iY;
+				VectorToMeredian(Nodes[i].origin, &iX, &iY);
+				if (iX > -1 && iY > -1)
+					AddToMeredian(iX, iY, i);
+			}
+
+		std::fclose(rbl);
+
+		// 04/07/04
+		// Check for full nodes table
+
+		if (Nodes[MAX_NODES - 1].origin != Vector(9999, 9999, 9999))
+			rblog("!!! Nodes table is full\n");
+
+		char msg[80];
+		snprintf(msg, sizeof(msg), "After NodeMachine::load iMaxUsedNodes=%d\n",
+				iMaxUsedNodes);
+		rblog(msg);
+		SERVER_PRINT("Going to load IAD file : ");
+		INI_PARSE_IAD();
+	} else {
+		//    char msg[128];
+		//    sprintf(msg, "Notice: Could not open %s.\n");
+		//    SERVER_PRINT(msg);
+	}
 }
 
 void cNodeMachine::ClearImportantGoals() {
